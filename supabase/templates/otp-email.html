@@ -1,0 +1,15 @@
+<!-- Supabase Auth · "Magic Link" template, tuned so the 6-DIGIT CODE is primary.
+     The link remains as a fallback for users whose mail client strips codes. -->
+<div style="font-family:Inter,-apple-system,Segoe UI,sans-serif;background:#F4EEE3;padding:32px;color:#26211A;">
+  <div style="max-width:460px;margin:0 auto;background:#FAF5EB;border:1px solid #D9CFBC;border-radius:10px;padding:32px;">
+    <div style="font-family:Georgia,serif;font-size:22px;font-weight:600;">The&nbsp;Lab<span style="color:#A8813B;">.</span></div>
+    <div style="font-size:10px;letter-spacing:.16em;color:#8A8071;text-transform:uppercase;margin-top:4px;">Transition Command Center</div>
+
+    <p style="font-size:14px;color:#5C5448;margin:26px 0 8px;">Your sign-in code:</p>
+    <div style="font-size:34px;font-weight:700;letter-spacing:10px;color:#26211A;background:#ECE3D1;border-radius:8px;padding:16px 8px;text-align:center;">{{ .Token }}</div>
+    <p style="font-size:12px;color:#8A8071;margin:14px 0 0;">Enter this code in the app. It expires in 60 minutes. If you didn't request it, ignore this email.</p>
+
+    <hr style="border:none;border-top:1px solid #D9CFBC;margin:24px 0;" />
+    <p style="font-size:12px;color:#8A8071;margin:0;">Trouble with the code? <a href="{{ .ConfirmationURL }}" style="color:#A8813B;">Use this one-time sign-in link instead</a>.</p>
+  </div>
+</div>

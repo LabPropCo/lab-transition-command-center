@@ -1,0 +1,28 @@
+/* Design tokens — extracted verbatim from the approved prototype.
+   Do not "improve" these; the prototype is the approved brief. */
+:root {
+  /* Surfaces */
+  --paper:  #F4EEE3;  /* app background */
+  --card:   #FAF5EB;  /* cards, active nav row */
+  --panel:  #ECE3D1;  /* recessed panels */
+  --line:   #D9CFBC;  /* hairline borders */
+
+  /* Ink */
+  --ink:    #26211A;  /* primary text */
+  --soft:   #5C5448;  /* secondary text */
+  --muted:  #8A8071;  /* tertiary text, captions */
+
+  /* Accents */
+  --gold:   #A8813B;  /* primary accent, active indicator */
+  --bronze: #9C7C52;  /* accent hover */
+  --terra:  #A5624A;  /* alerts, overdue, blocked */
+
+  /* Type */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Metrics */
+  --sidebar-w: 250px;
+  --radius: 6px;
+  --topbar-h: 84px;
+}

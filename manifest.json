@@ -1,0 +1,15 @@
+{
+  "version": "0.4.4",
+  "releaseName": "Template responsible_party integrity (v0.4.x acceptance fix)",
+  "lifecycleStage": "Ready for Acceptance",
+  "buildDate": "2026-07-15",
+  "dbMigrationLevel": "0014",
+  "requiresMigrationsAtLeast": "0014",
+  "includedMigrations": ["0010", "0011", "0012", "0013", "0014"],
+  "expectedExistingMigrations": ["0001","0002","0003","0004","0005","0006","0007","0008","0009"],
+  "modifiesAcceptedPhases": [
+    "v0.3.0 Admin Phase 1 — Transition Settings: Portfolio Manager replaced by Community Director (0012), and the Community Director user-picker replaced by a free-text name field (0013).",
+    "Property administration (a v0.5.0/Phase 3 feature) was pulled forward into v0.4.3 to resolve an acceptance defect.",
+    "v0.4.4 (0014) adds a CHECK constraint to work_item_templates.responsible_party (table introduced in v0.2.0). Additive integrity constraint only; existing seeded values already conform, and no v0.2.0 data or behavior changes."
+  ]
+}

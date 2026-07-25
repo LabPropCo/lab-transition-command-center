@@ -1,0 +1,21 @@
+# Supabase local/dev config. Production project settings mirror these in the
+# dashboard. The invite-only posture is expressed here AND in the dashboard.
+project_id = "lab-tcc"
+
+[auth]
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173"]
+# INVITE-ONLY: no public self-registration. This is half of the control; the
+# client also passes shouldCreateUser:false on every sign-in call.
+enable_signup = false
+
+[auth.email]
+enable_signup = false
+# OTP is the primary experience. 6-digit code, short-lived.
+otp_length = 6
+otp_expiry = 3600
+# Magic link remains available as a fallback via the same email.
+enable_confirmations = false
+
+# SMTP (Resend) is configured at the project level in the dashboard during M1.
+# Kept out of source; see docs/M1-RUNBOOK.md.

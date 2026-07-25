@@ -1,0 +1,111 @@
+/* App shell — reproduces the approved prototype's layout and chrome. */
+
+.app { display: grid; grid-template-columns: var(--sidebar-w) 1fr; min-height: 100vh; }
+
+/* ---------- Sidebar ---------- */
+.sidebar {
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  padding: 22px 14px 28px;
+  display: flex; flex-direction: column; gap: 26px;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+.brand { padding: 4px 6px 0; }
+.brand__mark { font-family: var(--font-display); font-weight: 500; font-size: 26px; letter-spacing: -0.01em; color: var(--ink); line-height: 1; }
+.brand__mark span { color: var(--gold); }
+.brand__sub { margin-top: 8px; font-size: 9.5px; letter-spacing: 0.18em; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+
+.nav__group { display: flex; flex-direction: column; gap: 2px; }
+.nav__label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 0 8px 6px; }
+.nav__item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 8px 12px 8px 4px; border-radius: 5px;
+  font-size: 13px; color: var(--soft); font-weight: 500;
+  background: transparent; border: none; width: 100%; text-align: left;
+  transition: background .12s, color .12s; white-space: nowrap;
+}
+.nav__item:hover { background: rgba(0,0,0,0.03); color: var(--ink); }
+.nav__item.is-active { background: var(--card); color: var(--ink); font-weight: 600; }
+.nav__bar { width: 3px; height: 15px; border-radius: 2px; flex: none; background: transparent; }
+.nav__item.is-active .nav__bar { background: var(--gold); }
+.nav__count { margin-left: auto; font-size: 10px; font-weight: 600; color: var(--muted); }
+.nav__item.is-active .nav__count { color: var(--gold); }
+.sidebar__spacer { flex: 1; }
+
+/* ---------- Top bar ---------- */
+.main { display: flex; flex-direction: column; min-width: 0; }
+.topbar {
+  min-height: var(--topbar-h);
+  border-bottom: 1px solid var(--line);
+  padding: 18px 34px; background: var(--paper);
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  position: sticky; top: 0; z-index: 5;
+}
+.topbar__prop { font-family: var(--font-display); font-size: 21px; font-weight: 500; color: var(--ink); line-height: 1.15; }
+.topbar__client { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--soft); background: var(--card); border: 1px solid var(--line); padding: 7px 13px; border-radius: 999px; }
+.chip__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); }
+
+/* ---------- Screen frame ---------- */
+.screen { padding: 30px 34px 60px; max-width: 1180px; }
+.screen__title { font-family: var(--font-display); font-size: 30px; font-weight: 500; letter-spacing: -0.015em; color: var(--ink); }
+.screen__deck { margin-top: 6px; font-size: 14px; color: var(--soft); max-width: 60ch; }
+
+/* ---------- Placeholder (M0) ---------- */
+.placeholder {
+  margin-top: 28px; border: 1px dashed var(--line); border-radius: var(--radius);
+  background: var(--card); padding: 34px; display: flex; flex-direction: column; gap: 10px;
+}
+.placeholder__badge { align-self: flex-start; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); background: rgba(168,129,59,0.10); border: 1px solid rgba(168,129,59,0.25); padding: 4px 10px; border-radius: 999px; }
+.placeholder__head { font-family: var(--font-display); font-size: 18px; color: var(--ink); }
+.placeholder__body { font-size: 13.5px; color: var(--soft); max-width: 62ch; line-height: 1.55; }
+
+/* ---------- Responsive (quality floor) ---------- */
+@media (max-width: 860px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; flex-direction: column; }
+  .topbar { padding: 16px 20px; }
+  .screen { padding: 22px 20px 48px; }
+}
+
+/* ---------- Top bar right cluster (M1) ---------- */
+.topbar__right { display: flex; align-items: center; gap: 14px; }
+.switcher { font-size: 13px; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 8px 11px; cursor: pointer; }
+.topbar__user { display: flex; align-items: center; gap: 10px; padding-left: 4px; }
+.topbar__email { font-size: 12px; color: var(--muted); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar__signout { font-size: 12px; font-weight: 600; color: var(--soft); background: none; border: 1px solid var(--line); border-radius: 6px; padding: 6px 11px; transition: border-color .12s, color .12s; }
+.topbar__signout:hover { color: var(--gold); border-color: var(--gold); }
+
+/* ---------- Dev-mode bypass badge (dev builds only) ---------- */
+.devbanner { position: fixed; left: 14px; bottom: 14px; z-index: 90; display: inline-flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.03em; color: #fff; background: var(--terra); border-radius: 999px; padding: 7px 13px; box-shadow: 0 4px 14px rgba(38,33,26,0.22); }
+.devbanner__dot { width: 7px; height: 7px; border-radius: 50%; background: #fff; opacity: 0.9; }
+
+/* ---------- Dev bypass error (dev builds only) ---------- */
+.bypasserr { min-height: 100vh; display: grid; place-items: center; background: var(--paper); padding: 24px; }
+.bypasserr__card { max-width: 520px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 30px; }
+.bypasserr__badge { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; color: #fff; background: var(--terra); border-radius: 999px; padding: 4px 11px; }
+.bypasserr__title { font-family: var(--font-display); font-size: 24px; font-weight: 500; color: var(--ink); margin: 16px 0 8px; }
+.bypasserr__msg { font-size: 14px; color: var(--soft); line-height: 1.55; margin: 0; }
+.bypasserr__steps { margin-top: 22px; }
+.bypasserr__steplabel { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
+.bypasserr__pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; overflow-x: auto; white-space: pre; margin: 0; }
+.bypasserr__hint { font-size: 12.5px; color: var(--muted); margin: 14px 0 0; }
+.bypasserr__hint code { font-size: 11.5px; background: rgba(0,0,0,0.05); padding: 1px 5px; border-radius: 3px; }
+
+/* ---------- Top bar: transition switcher ---------- */
+.topbar__left { min-width: 0; }
+.topbar__tsel { font-family: var(--font-display); font-size: 20px; font-weight: 500; color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 2px 6px; margin-left: -6px; cursor: pointer; }
+.topbar__tsel:hover { border-color: var(--line); }
+
+/* ---------- Load/error states ---------- */
+.topbar__prop--muted { color: var(--muted); font-weight: 400; }
+.topbar__prop--err { color: var(--terra); }
+.loadbar { display: flex; align-items: center; gap: 12px; padding: 10px 20px; background: rgba(165,98,74,0.10);
+  border-bottom: 1px solid var(--line); color: var(--ink); font-size: 13px; }
+.loadbar__msg { flex: 1; line-height: 1.4; }
+.loadbar__retry { flex: none; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 6px;
+  border: 1px solid var(--terra); color: var(--terra); background: transparent; cursor: pointer; }
+.loadbar__retry:hover { background: var(--terra); color: var(--paper); }
+
+/* ---------- Transition logo in the top bar ---------- */
+.topbar__logo { height: 28px; width: auto; max-width: 120px; object-fit: contain; margin-right: 10px; border-radius: 4px; vertical-align: middle; }
