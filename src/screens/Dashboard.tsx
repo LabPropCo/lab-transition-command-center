@@ -5,14 +5,6 @@ import type { WorkItem } from "../work-items/types";
 import { computeDashboardMetrics, computePriorityItems, computeRecentProgress } from "../lib/metrics";
 import "../styles/dashboard.css";
 
-const STATUS_TONE: Record<string, "good" | "attention" | "neutral"> = {
-  "On Track": "good",
-  "Complete": "good",
-  "At Risk": "attention",
-  "Delayed": "attention",
-  "On Hold": "neutral",
-};
-
 function daysUntil(iso: string | null): number | null {
   if (!iso) return null;
   const target = new Date(iso + "T00:00:00");
@@ -20,6 +12,29 @@ function daysUntil(iso: string | null): number | null {
   const today = new Date(new Date().toDateString());
   return Math.round((target.getTime() - today.getTime()) / 86_400_000);
 }
+
+// Spells out small integers for prose sentences (an executive briefing reads
+// as written, not tabulated — numerals stay in the stat strip and lists).
+const ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+const TEENS = ["ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+const TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+function numberToWords(n: number): string {
+  if (n < 0 || !Number.isFinite(n)) return String(n);
+  if (n < 10) return ONES[n];
+  if (n < 20) return TEENS[n - 10];
+  if (n < 100) {
+    const tens = Math.floor(n / 10);
+    const ones = n % 10;
+    return TENS[tens] + (ones ? "-" + ONES[ones] : "");
+  }
+  if (n < 1000) {
+    const hundreds = Math.floor(n / 100);
+    const rest = n % 100;
+    return ONES[hundreds] + " hundred" + (rest ? " " + numberToWords(rest) : "");
+  }
+  return String(n); // beyond realistic scale for this app — fall back rather than guess
+}
+function cap(s: string): string { return s.charAt(0).toUpperCase() + s.slice(1); }
 
 export function Dashboard() {
   const { selected, propertyFilter } = useTransition();
@@ -49,36 +64,54 @@ export function Dashboard() {
   const priorityItems = useMemo(() => computePriorityItems(scoped), [scoped]);
   const recentProgress = useMemo(() => computeRecentProgress(scoped), [scoped]);
 
-  const status = selected?.overallStatus ?? null;
-  const tone = status ? (STATUS_TONE[status] ?? "neutral") : "neutral";
   const goLiveDays = selected ? daysUntil(selected.targetGoLive) : null;
 
-  // A short, honest narrative — every clause is a computed fact, nothing fabricated.
+  // An evidence-only briefing: every sentence is one computed fact, stated
+  // plainly. No status word, no judgment — the reader draws their own
+  // conclusion from the numbers, the same way the app would.
   const narrative = useMemo(() => {
     if (!selected || metrics.totalCount === 0) return null;
-    const parts: string[] = [];
-    parts.push(
-      `${metrics.readinessPercent}% of ${metrics.totalCount} work items are complete` +
-      (goLiveDays !== null ? `, with ${goLiveDays >= 0 ? goLiveDays : 0} day${goLiveDays === 1 ? "" : "s"} remaining to go-live.` : "."),
+    const sentences: string[] = [];
+    sentences.push(`${metrics.readinessPercent}% of work items are complete.`);
+    sentences.push(
+      `${cap(numberToWords(metrics.goLiveGate.completed))} of ${numberToWords(metrics.goLiveGate.total)} go-live gates ` +
+      `${metrics.goLiveGate.completed === 1 ? "has" : "have"} been completed.`,
     );
-    if (metrics.overdueCount > 0) {
-      const gateNote = metrics.goLiveGate.outstanding > 0
-        ? `, including ${metrics.goLiveGate.outstanding} go-live gate${metrics.goLiveGate.outstanding === 1 ? "" : "s"} not yet cleared`
-        : "";
-      parts.push(`${metrics.overdueCount} item${metrics.overdueCount === 1 ? "" : "s"} ${metrics.overdueCount === 1 ? "is" : "are"} past due${gateNote}.`);
-    } else {
-      parts.push("Nothing is past due.");
-    }
-    return parts.join(" ");
-  }, [selected, metrics, goLiveDays]);
+    sentences.push(
+      `${cap(numberToWords(metrics.criticalPath.completed))} of ${numberToWords(metrics.criticalPath.total)} critical-path items ` +
+      `${metrics.criticalPath.completed === 1 ? "has" : "have"} been completed.`,
+    );
+    sentences.push(
+      metrics.overdueCount > 0
+        ? `${cap(numberToWords(metrics.overdueCount))} work item${metrics.overdueCount === 1 ? "" : "s"} ${metrics.overdueCount === 1 ? "is" : "are"} overdue.`
+        : "No work items are overdue.",
+    );
+    sentences.push(
+      recentProgress.count > 0
+        ? `Recent activity shows ${numberToWords(recentProgress.count)} completed work item${recentProgress.count === 1 ? "" : "s"} during the past two weeks.`
+        : "No work items have been completed in the past two weeks.",
+    );
+    return sentences.join(" ");
+  }, [selected, metrics, recentProgress]);
 
   return (
     <section className="screen dash">
       <div className="dash__hero">
-        <div className="dash__eyebrow">{selected?.name ?? "Dashboard"}</div>
-        <h1 className={"dash__status dash__status--" + tone}>{status ?? "Dashboard"}</h1>
-        {selected?.currentPhase && <p className="dash__phase">{selected.currentPhase}</p>}
-        {narrative && <p className="dash__narrative">{narrative}</p>}
+        <h1 className="dash__title">{selected?.name ?? "Dashboard"}</h1>
+        {(selected?.currentPhase || goLiveDays !== null) && (
+          <p className="dash__meta">
+            {selected?.currentPhase}
+            {selected?.currentPhase && goLiveDays !== null && " · "}
+            {goLiveDays !== null && `${goLiveDays >= 0 ? goLiveDays : 0} day${goLiveDays === 1 ? "" : "s"} until go-live`}
+          </p>
+        )}
+
+        {narrative && (
+          <div className="dash__summary">
+            <h2 className="dash__summary-label">Executive Summary</h2>
+            <p className="dash__narrative">{narrative}</p>
+          </div>
+        )}
       </div>
 
       {err && <p className="dash__err">{err}</p>}
@@ -102,12 +135,6 @@ export function Dashboard() {
               <div className="dash__stat-value">{metrics.readinessPercent}%</div>
               <div className="dash__stat-label">Ready</div>
             </div>
-            {goLiveDays !== null && (
-              <div className="dash__stat">
-                <div className="dash__stat-value">{goLiveDays >= 0 ? goLiveDays : 0}</div>
-                <div className="dash__stat-label">Days to go-live</div>
-              </div>
-            )}
             <div className="dash__stat">
               <div className="dash__stat-value">{metrics.goLiveGate.completed}/{metrics.goLiveGate.total}</div>
               <div className="dash__stat-label">Go-live gates</div>
@@ -115,6 +142,10 @@ export function Dashboard() {
             <div className="dash__stat">
               <div className="dash__stat-value">{metrics.criticalPath.completed}/{metrics.criticalPath.total}</div>
               <div className="dash__stat-label">Critical path</div>
+            </div>
+            <div className="dash__stat">
+              <div className="dash__stat-value">{metrics.overdueCount}</div>
+              <div className="dash__stat-label">Overdue</div>
             </div>
           </div>
 
@@ -138,11 +169,11 @@ export function Dashboard() {
 
             <section className="dash__block">
               <h2 className="dash__block-title dash__block-title--progress">Recent progress</h2>
-              {recentProgress.length === 0 ? (
+              {recentProgress.items.length === 0 ? (
                 <p className="dash__quiet">Nothing completed in the last two weeks.</p>
               ) : (
                 <ol className="dash__list">
-                  {recentProgress.map((w) => (
+                  {recentProgress.items.map((w) => (
                     <li className="dash__row" key={w.id}>
                       <span className="dash__row-code">{w.code}</span>
                       <span className="dash__row-desc">{w.description}</span>

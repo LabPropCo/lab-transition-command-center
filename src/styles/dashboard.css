@@ -5,15 +5,13 @@
 .dash__err { font-size: 13px; color: var(--terra); background: rgba(165,98,74,0.08); border: 1px solid rgba(165,98,74,0.25); border-radius: 6px; padding: 9px 12px; margin: 22px 0 0; }
 .dash__loading { margin-top: 22px; font-size: 13px; color: var(--muted); }
 
-/* ---------- Hero: the executive summary ---------- */
+/* ---------- Hero: identity + evidence, no status word ---------- */
 .dash__hero { margin-top: 8px; max-width: 68ch; }
-.dash__eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-.dash__status { font-family: var(--font-display); font-weight: 500; font-size: 52px; line-height: 1.05; letter-spacing: -0.01em; color: var(--ink); margin: 10px 0 0; }
-.dash__status--good { color: var(--gold); }
-.dash__status--attention { color: var(--terra); }
-.dash__status--neutral { color: var(--ink); }
-.dash__phase { margin: 6px 0 0; font-size: 15px; color: var(--soft); }
-.dash__narrative { margin: 18px 0 0; font-size: 15px; line-height: 1.65; color: var(--soft); }
+.dash__title { font-family: var(--font-display); font-weight: 500; font-size: 40px; line-height: 1.1; letter-spacing: -0.01em; color: var(--ink); margin: 0; }
+.dash__meta { margin: 8px 0 0; font-size: 15px; color: var(--soft); }
+.dash__summary { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line); }
+.dash__summary-label { font-family: var(--font-body); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.dash__narrative { margin: 12px 0 0; font-size: 15px; line-height: 1.65; color: var(--soft); }
 
 /* ---------- Quiet stat strip (not boxed tiles) ---------- */
 .dash__stats { display: flex; flex-wrap: wrap; gap: 56px; margin-top: 40px; padding-top: 22px; border-top: 1px solid var(--line); }
@@ -60,6 +58,6 @@
 }
 
 @media (max-width: 640px) {
-  .dash__status { font-size: 38px; }
+  .dash__title { font-size: 30px; }
   .dash__stats { gap: 24px; }
 }
