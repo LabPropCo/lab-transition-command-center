@@ -8,3 +8,4 @@ dist
 .vite
 .claude/
 supabase/.temp/
+*.tsbuildinfo
