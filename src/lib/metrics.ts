@@ -174,20 +174,23 @@ function daysPastDue(dueDate: string): number {
   return Math.round((today.getTime() - due.getTime()) / 86_400_000);
 }
 
-// The end of "this week," defined as the coming Sunday (a Monday-through-
-// Sunday week) — if `today` already is Sunday, the week ends today. This is
-// the one place that definition lives; change it here only.
-function endOfWeek(today: Date): Date {
-  const d = new Date(today);
-  d.setDate(d.getDate() + ((7 - d.getDay()) % 7));
-  return d;
-}
-
-function isDueThisWeek(w: WorkItem, today: Date, weekEnd: Date): boolean {
+// "Due this week" is a rolling 7-day window — today through today+6 —
+// not a Monday/Sunday calendar week. A calendar week previously lived
+// here (end of week = "the coming Sunday"), which had a real bug: when
+// `today` itself fell on a Sunday, "the coming Sunday" is today, so the
+// window collapsed to zero width and an item due the very next day
+// (Monday) was wrongly excluded. A rolling window has no day-of-week
+// edge case, and it matches what "due this week" means in a personal
+// queue: what's coming up soon, not "before this specific calendar
+// boundary." Verified against live data: with today = Sun Jul 26 2026,
+// an item due Jul 27 (tomorrow) now correctly falls inside the window.
+function isDueThisWeek(w: WorkItem, today: Date): boolean {
   if (!w.dueDate) return false;
   const due = new Date(w.dueDate + "T00:00:00");
   if (Number.isNaN(due.getTime())) return false;
-  return due >= today && due <= weekEnd;
+  const windowEnd = new Date(today);
+  windowEnd.setDate(windowEnd.getDate() + 6);
+  return due >= today && due <= windowEnd;
 }
 
 const MY_ACTIONS_PRIORITY_RANK: Record<string, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
@@ -237,8 +240,8 @@ export interface MyActionsGroups {
   goLiveGates: WorkItem[];        // go_live_gate, not already above
   blocked: WorkItem[];            // status === "Blocked", not already above
   overdue: WorkItem[];            // isOverdue(), not already above
-  dueThisWeek: WorkItem[];        // due today through the end of this week, not already above
-  everythingElse: WorkItem[];     // everything else active; items with no due date sort to the bottom
+  dueThisWeek: WorkItem[];        // due within the rolling 7-day window, not already above
+  activeWork: WorkItem[];         // everything else active; items with no due date sort to the bottom
   counts: MyActionsCounts;
 }
 
@@ -249,7 +252,6 @@ export interface MyActionsGroups {
 export function computeMyActions(items: WorkItem[], displayName: string, now: Date = new Date()): MyActionsGroups {
   const safeItems = Array.isArray(items) ? items : [];
   const today = new Date(now.toDateString());
-  const weekEnd = endOfWeek(today);
 
   const mine = safeItems.filter((w) => isActiveStatus(w) && isAssignedTo(w, displayName));
 
@@ -259,7 +261,7 @@ export function computeMyActions(items: WorkItem[], displayName: string, now: Da
   const blocked: WorkItem[] = [];
   const overdue: WorkItem[] = [];
   const dueThisWeek: WorkItem[] = [];
-  const everythingElse: WorkItem[] = [];
+  const activeWork: WorkItem[] = [];
 
   for (const w of mine) {
     if (w.priority === "Critical") executiveAttention.push(w);
@@ -267,11 +269,11 @@ export function computeMyActions(items: WorkItem[], displayName: string, now: Da
     else if (w.goLiveGate === true) goLiveGates.push(w);
     else if (isBlocked(w)) blocked.push(w);
     else if (isOverdue(w)) overdue.push(w);
-    else if (isDueThisWeek(w, today, weekEnd)) dueThisWeek.push(w);
-    else everythingElse.push(w);
+    else if (isDueThisWeek(w, today)) dueThisWeek.push(w);
+    else activeWork.push(w);
   }
 
-  [executiveAttention, criticalPath, goLiveGates, blocked, overdue, dueThisWeek, everythingElse]
+  [executiveAttention, criticalPath, goLiveGates, blocked, overdue, dueThisWeek, activeWork]
     .forEach((section) => section.sort(compareMyActions));
 
   return {
@@ -281,7 +283,7 @@ export function computeMyActions(items: WorkItem[], displayName: string, now: Da
     blocked,
     overdue,
     dueThisWeek,
-    everythingElse,
+    activeWork,
     counts: {
       overdue: overdue.length,
       dueThisWeek: dueThisWeek.length,
@@ -289,6 +291,43 @@ export function computeMyActions(items: WorkItem[], displayName: string, now: Da
       blocked: blocked.length,
     },
   };
+}
+
+export interface WaitingOnGroup {
+  party: string;
+  count: number;
+}
+
+// My active items where someone else needs to act next, grouped by the
+// party already named in the status value (Client / Prior Manager /
+// Vendor) — no new field. "Who specifically" and "since when" aren't
+// tracked at that granularity, so neither is shown; see the Blocked
+// design note in MyActions.tsx for what a fuller version would need.
+export function computeWaitingOn(items: WorkItem[], displayName: string): WaitingOnGroup[] {
+  const mine = items.filter((w) => isActiveStatus(w) && isAssignedTo(w, displayName) && w.status.startsWith("Waiting on "));
+  const counts = new Map<string, number>();
+  for (const w of mine) {
+    const party = w.status.slice("Waiting on ".length);
+    counts.set(party, (counts.get(party) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([party, count]) => ({ party, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+// The user's own recently-completed items — momentum evidence for a
+// personal workspace. Deliberately not the Dashboard's concept: that one
+// was cut twice for not informing a leadership decision about the whole
+// transition. Here it's the individual's own recent progress, which is
+// exactly what a personal execution page should reinforce.
+export function computeMyRecentCompletions(items: WorkItem[], displayName: string, days = 14, limit = 5): WorkItem[] {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  return items
+    .filter((w) => isAssignedTo(w, displayName) && w.status === "Complete" && w.completedAt && new Date(w.completedAt) >= cutoff)
+    .slice()
+    .sort((a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? ""))
+    .slice(0, limit);
 }
 
 export function computeDashboardMetrics(items: WorkItem[]): DashboardMetrics {

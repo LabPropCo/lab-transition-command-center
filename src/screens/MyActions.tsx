@@ -6,7 +6,7 @@ import { DEMO_MODE } from "../demo/config";
 import { listWorkItemsForTransitions, getCurrentUserDisplayName, updateWorkItem, listActiveOwners } from "../work-items/api";
 import type { WorkItem, WorkItemPatch } from "../work-items/types";
 import type { WorkOwner } from "../types";
-import { computeMyActions, isOverdue, type MyActionsGroups } from "../lib/metrics";
+import { computeMyActions, computeWaitingOn, computeMyRecentCompletions, isOverdue, type MyActionsGroups } from "../lib/metrics";
 import { WorkItemDetail } from "../components/WorkItemDetail";
 import { SCREENS } from "../lib/nav";
 import "../styles/myactions.css";
@@ -29,10 +29,13 @@ function daysOverdue(iso: string): number {
   return Math.round((today.getTime() - due.getTime()) / 86_400_000);
 }
 
+// No year: this page is a near-term workspace (this week / active work),
+// not an archive — the year is never the ambiguous part of a due date
+// someone's looking at today.
 function formatDate(iso: string): string {
   const d = new Date(iso + "T00:00:00");
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
 }
 
 // One line, worst-first: overdue duration beats a plain due date, and a
@@ -59,6 +62,16 @@ const WAITING_PREFIX = "Waiting on ";
 // for Executive Attention Required specifically — could never fire
 // anywhere else, since any Critical-priority item is always sectioned
 // there first.
+//
+// Design note (not implemented — see the brief's "Blocked Work" section):
+// a fuller Blocked row would eventually add who specifically it's waiting
+// on and since when. Neither is tracked at that granularity today — the
+// status field only names a party/role (Client, Vendor, ...), not a
+// person, and "since when" would mean querying audit_log for the most
+// recent transition into "Blocked," which isn't wired up yet. This
+// function already returns a flat array of independent strings, so
+// either addition is just one more entry here whenever that's built —
+// nothing about this shape needs to change to accommodate it.
 function flagLabels(w: WorkItem, section: SectionKey): string[] {
   const flags: string[] = [];
   if (w.criticalPath && section !== "criticalPath") flags.push("Critical Path");
@@ -84,7 +97,7 @@ function ActionRow({ item, section, scopeLabel, onOpen }: ActionRowProps) {
   );
 }
 
-const SECTION_TITLES: Record<Exclude<SectionKey, "everythingElse">, string> = {
+const SECTION_TITLES: Record<Exclude<SectionKey, "activeWork">, string> = {
   executiveAttention: "Executive attention required",
   criticalPath: "Critical path",
   goLiveGates: "Go-live gates",
@@ -181,6 +194,14 @@ export function MyActions() {
     () => (displayName ? computeMyActions(scoped, displayName) : null),
     [scoped, displayName],
   );
+  const waitingOn = useMemo(
+    () => (displayName ? computeWaitingOn(scoped, displayName) : []),
+    [scoped, displayName],
+  );
+  const recentCompletions = useMemo(
+    () => (displayName ? computeMyRecentCompletions(scoped, displayName) : []),
+    [scoped, displayName],
+  );
 
   const scopeLabel = (w: WorkItem): string => {
     const transitionName = transitionNames.get(w.transitionId) ?? "";
@@ -212,7 +233,7 @@ export function MyActions() {
     ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function renderSection(key: Exclude<SectionKey, "everythingElse">, list: WorkItem[]) {
+  function renderSection(key: Exclude<SectionKey, "activeWork">, list: WorkItem[]) {
     if (list.length === 0) return null;
     const ref = key in sectionRefs ? sectionRefs[key as ScrollTarget] : undefined;
     return (
@@ -230,7 +251,7 @@ export function MyActions() {
   const open = items.find((w) => w.id === openId) ?? null;
   const totalMine = groups
     ? groups.executiveAttention.length + groups.criticalPath.length + groups.goLiveGates.length
-      + groups.blocked.length + groups.overdue.length + groups.dueThisWeek.length + groups.everythingElse.length
+      + groups.blocked.length + groups.overdue.length + groups.dueThisWeek.length + groups.activeWork.length
     : 0;
   const s = SCREENS.myactions;
   const urgentEmpty = groups
@@ -256,7 +277,7 @@ export function MyActions() {
 
       {!loading && !err && groups && (
         totalMine === 0 ? (
-          <p className="ma__empty">You have no active work items assigned.</p>
+          <p className="ma__empty">You have no active work assigned right now.</p>
         ) : (
           <>
             <div className="ma__stats">
@@ -278,41 +299,77 @@ export function MyActions() {
               </button>
             </div>
 
-            <div className="ma__body">
-              {urgentEmpty
-                ? <p className="ma__quiet ma__quiet--lead">Nothing requires urgent attention right now.</p>
-                : (
-                  <>
-                    {renderSection("executiveAttention", groups.executiveAttention)}
-                    {renderSection("criticalPath", groups.criticalPath)}
-                    {renderSection("goLiveGates", groups.goLiveGates)}
-                    {renderSection("blocked", groups.blocked)}
-                    {renderSection("overdue", groups.overdue)}
-                  </>
-                )}
+            <div className="ma__layout">
+              <div className="ma__body">
+                {urgentEmpty
+                  ? <p className="ma__quiet ma__quiet--lead">Nothing requires urgent attention right now.</p>
+                  : (
+                    <>
+                      {renderSection("executiveAttention", groups.executiveAttention)}
+                      {renderSection("criticalPath", groups.criticalPath)}
+                      {renderSection("goLiveGates", groups.goLiveGates)}
+                      {renderSection("blocked", groups.blocked)}
+                      {renderSection("overdue", groups.overdue)}
+                    </>
+                  )}
 
-              <section className="ma__group" ref={sectionRefs.dueThisWeek}>
-                <h2 className="ma__group-title">Due this week</h2>
-                {groups.dueThisWeek.length === 0 ? (
-                  <p className="ma__quiet">You're caught up for this week.</p>
-                ) : (
-                  <ol className="ma__list">
-                    {groups.dueThisWeek.map((w) => (
-                      <ActionRow key={w.id} item={w} section="dueThisWeek" scopeLabel={scopeLabel(w)} onOpen={() => setOpenId(w.id)} />
-                    ))}
-                  </ol>
-                )}
-              </section>
-
-              {groups.everythingElse.length > 0 && (
-                <section className="ma__group">
-                  <h2 className="ma__group-title">Everything else</h2>
-                  <ol className="ma__list">
-                    {groups.everythingElse.map((w) => (
-                      <ActionRow key={w.id} item={w} section="everythingElse" scopeLabel={scopeLabel(w)} onOpen={() => setOpenId(w.id)} />
-                    ))}
-                  </ol>
+                <section className="ma__group" ref={sectionRefs.dueThisWeek}>
+                  <h2 className="ma__group-title">Due this week</h2>
+                  {groups.dueThisWeek.length === 0 ? (
+                    <p className="ma__quiet">You're caught up for this week.</p>
+                  ) : (
+                    <ol className="ma__list">
+                      {groups.dueThisWeek.map((w) => (
+                        <ActionRow key={w.id} item={w} section="dueThisWeek" scopeLabel={scopeLabel(w)} onOpen={() => setOpenId(w.id)} />
+                      ))}
+                    </ol>
+                  )}
                 </section>
+
+                {groups.activeWork.length > 0 && (
+                  <section className="ma__group">
+                    <h2 className="ma__group-title">Active work</h2>
+                    <ol className="ma__list">
+                      {groups.activeWork.map((w) => (
+                        <ActionRow key={w.id} item={w} section="activeWork" scopeLabel={scopeLabel(w)} onOpen={() => setOpenId(w.id)} />
+                      ))}
+                    </ol>
+                  </section>
+                )}
+              </div>
+
+              {/* A small operator sidebar, not a second dashboard — each
+                  widget hides itself entirely when it has nothing to show,
+                  rather than adding an empty-state message of its own; the
+                  point is context that supports execution, not more things
+                  to read. */}
+              {(waitingOn.length > 0 || recentCompletions.length > 0) && (
+                <aside className="ma__sidebar">
+                  {waitingOn.length > 0 && (
+                    <section className="ma__side-block">
+                      <h2 className="ma__side-title">Waiting on</h2>
+                      <ul className="ma__side-list">
+                        {waitingOn.map((g) => (
+                          <li className="ma__side-row" key={g.party}>
+                            <span>{g.party}</span>
+                            <span className="ma__side-count">{g.count}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+
+                  {recentCompletions.length > 0 && (
+                    <section className="ma__side-block">
+                      <h2 className="ma__side-title">Recently completed</h2>
+                      <ul className="ma__side-list ma__side-list--quiet">
+                        {recentCompletions.map((w) => (
+                          <li className="ma__side-row ma__side-row--quiet" key={w.id}>{w.description}</li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                </aside>
               )}
             </div>
           </>
