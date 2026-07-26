@@ -13,6 +13,23 @@ function daysUntil(iso: string | null): number | null {
   return Math.round((target.getTime() - today.getTime()) / 86_400_000);
 }
 
+// How many days an already-overdue item has been overdue. Only ever called on
+// items isOverdue() has already confirmed have a valid, past due date.
+function daysOverdue(iso: string): number {
+  const due = new Date(iso + "T00:00:00");
+  const today = new Date(new Date().toDateString());
+  return Math.round((today.getTime() - due.getTime()) / 86_400_000);
+}
+
+// A self-contained figure + label, never a fragment: whatever the sign of
+// `d`, the pairing always reads as a complete statement on its own.
+function goLiveCountdown(d: number): { value: number; label: string } {
+  if (d > 0) return { value: d, label: d === 1 ? "Day until go-live" : "Days until go-live" };
+  if (d === 0) return { value: 0, label: "Go-live is today" };
+  const since = Math.abs(d);
+  return { value: since, label: since === 1 ? "Day since go-live" : "Days since go-live" };
+}
+
 // Spells out small integers for prose sentences (an executive briefing reads
 // as written, not tabulated — numerals stay in the stat strip and lists).
 const ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
@@ -65,46 +82,43 @@ export function Dashboard() {
   const recentProgress = useMemo(() => computeRecentProgress(scoped), [scoped]);
 
   const goLiveDays = selected ? daysUntil(selected.targetGoLive) : null;
+  const countdown = goLiveDays !== null ? goLiveCountdown(goLiveDays) : null;
+  const phase = selected?.currentPhase?.trim() || null;
 
-  // An evidence-only briefing: every sentence is one computed fact, stated
-  // plainly. No status word, no judgment — the reader draws their own
-  // conclusion from the numbers, the same way the app would.
+  // An interpretive, evidence-only briefing — at most two sentences, each
+  // relating facts rather than re-reading a numeral already on screen in the
+  // stat strip below. No status word, no judgment.
   const narrative = useMemo(() => {
     if (!selected || metrics.totalCount === 0) return null;
     const sentences: string[] = [];
-    sentences.push(`${metrics.readinessPercent}% of work items are complete.`);
     sentences.push(
-      `${cap(numberToWords(metrics.goLiveGate.completed))} of ${numberToWords(metrics.goLiveGate.total)} go-live gates ` +
-      `${metrics.goLiveGate.completed === 1 ? "has" : "have"} been completed.`,
-    );
-    sentences.push(
-      `${cap(numberToWords(metrics.criticalPath.completed))} of ${numberToWords(metrics.criticalPath.total)} critical-path items ` +
-      `${metrics.criticalPath.completed === 1 ? "has" : "have"} been completed.`,
-    );
-    sentences.push(
-      metrics.overdueCount > 0
-        ? `${cap(numberToWords(metrics.overdueCount))} work item${metrics.overdueCount === 1 ? "" : "s"} ${metrics.overdueCount === 1 ? "is" : "are"} overdue.`
-        : "No work items are overdue.",
+      goLiveDays !== null && goLiveDays > 0
+        ? `${metrics.readinessPercent}% of work is complete with ${goLiveDays} day${goLiveDays === 1 ? "" : "s"} remaining until go-live.`
+        : `${metrics.readinessPercent}% of work items are complete.`,
     );
     sentences.push(
       recentProgress.count > 0
-        ? `Recent activity shows ${numberToWords(recentProgress.count)} completed work item${recentProgress.count === 1 ? "" : "s"} during the past two weeks.`
+        ? `${cap(numberToWords(recentProgress.count))} work item${recentProgress.count === 1 ? "" : "s"} ${recentProgress.count === 1 ? "has" : "have"} been completed in the past two weeks.`
         : "No work items have been completed in the past two weeks.",
     );
     return sentences.join(" ");
-  }, [selected, metrics, recentProgress]);
+  }, [selected, metrics, recentProgress, countdown, goLiveDays]);
 
   return (
     <section className="screen dash">
       <div className="dash__hero">
-        <h1 className="dash__title">{selected?.name ?? "Dashboard"}</h1>
-        {(selected?.currentPhase || goLiveDays !== null) && (
-          <p className="dash__meta">
-            {selected?.currentPhase}
-            {selected?.currentPhase && goLiveDays !== null && " · "}
-            {goLiveDays !== null && `${goLiveDays >= 0 ? goLiveDays : 0} day${goLiveDays === 1 ? "" : "s"} until go-live`}
-          </p>
-        )}
+        <div className="dash__herotop">
+          <div>
+            <h1 className="dash__title">{selected?.name ?? "Dashboard"}</h1>
+            {phase && <p className="dash__meta">{phase}</p>}
+          </div>
+          {countdown && (
+            <div className="dash__countdown">
+              <div className="dash__countdown-value">{countdown.value}</div>
+              <div className="dash__countdown-label">{countdown.label}</div>
+            </div>
+          )}
+        </div>
 
         {narrative && (
           <div className="dash__summary">
@@ -133,7 +147,7 @@ export function Dashboard() {
           <div className="dash__stats">
             <div className="dash__stat">
               <div className="dash__stat-value">{metrics.readinessPercent}%</div>
-              <div className="dash__stat-label">Ready</div>
+              <div className="dash__stat-label">Work items complete</div>
             </div>
             <div className="dash__stat">
               <div className="dash__stat-value">{metrics.goLiveGate.completed}/{metrics.goLiveGate.total}</div>
@@ -156,13 +170,19 @@ export function Dashboard() {
                 <p className="dash__quiet">Nothing overdue on the critical path or a go-live gate.</p>
               ) : (
                 <ol className="dash__list">
-                  {priorityItems.map((w) => (
-                    <li className="dash__row" key={w.id}>
-                      <span className="dash__row-code">{w.code}</span>
-                      <span className="dash__row-desc">{w.description}</span>
-                      <span className="dash__row-meta">{w.dueDate} · overdue</span>
-                    </li>
-                  ))}
+                  {priorityItems.map((w) => {
+                    const overdue = w.dueDate ? daysOverdue(w.dueDate) : null;
+                    return (
+                      <li className="dash__row" key={w.id}>
+                        <span className="dash__row-code">{w.code}</span>
+                        <span className="dash__row-desc">{w.description}</span>
+                        <span className="dash__row-meta">
+                          {w.owner && <>{w.owner} · </>}
+                          {overdue !== null ? `${overdue} day${overdue === 1 ? "" : "s"} overdue` : "overdue"}
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ol>
               )}
             </section>
@@ -172,12 +192,12 @@ export function Dashboard() {
               {recentProgress.items.length === 0 ? (
                 <p className="dash__quiet">Nothing completed in the last two weeks.</p>
               ) : (
-                <ol className="dash__list">
+                <ol className="dash__momentum-list">
                   {recentProgress.items.map((w) => (
-                    <li className="dash__row" key={w.id}>
-                      <span className="dash__row-code">{w.code}</span>
-                      <span className="dash__row-desc">{w.description}</span>
-                      <span className="dash__row-meta">{w.completedAt?.slice(0, 10)}</span>
+                    <li className="dash__momentum-item" key={w.id}>
+                      {w.owner ? <>{w.owner} completed </> : "Completed "}
+                      <span className="dash__momentum-desc">{w.description}</span>
+                      {w.completedAt && <span className="dash__momentum-date"> · {w.completedAt.slice(0, 10)}</span>}
                     </li>
                   ))}
                 </ol>

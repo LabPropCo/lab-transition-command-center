@@ -6,10 +6,18 @@
 .dash__loading { margin-top: 22px; font-size: 13px; color: var(--muted); }
 
 /* ---------- Hero: identity + evidence, no status word ---------- */
-.dash__hero { margin-top: 8px; max-width: 68ch; }
+.dash__hero { margin-top: 8px; max-width: 860px; }
+.dash__herotop { display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
 .dash__title { font-family: var(--font-display); font-weight: 500; font-size: 40px; line-height: 1.1; letter-spacing: -0.01em; color: var(--ink); margin: 0; }
 .dash__meta { margin: 8px 0 0; font-size: 15px; color: var(--soft); }
-.dash__summary { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line); }
+
+/* The one figure the whole page is organized around — deliberately the
+   largest number on screen, but plain ink, no judgment color. */
+.dash__countdown { flex: 0 0 auto; text-align: right; }
+.dash__countdown-value { font-family: var(--font-display); font-weight: 500; font-size: 56px; line-height: 1; color: var(--ink); }
+.dash__countdown-label { margin-top: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); }
+
+.dash__summary { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line); max-width: 68ch; }
 .dash__summary-label { font-family: var(--font-body); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0; }
 .dash__narrative { margin: 12px 0 0; font-size: 15px; line-height: 1.65; color: var(--soft); }
 
@@ -38,6 +46,14 @@
 .dash__row-desc { flex: 1 1 auto; min-width: 60%; color: var(--ink); }
 .dash__row-meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
 
+/* Recent progress: deliberately quieter than "Needs attention" — running
+   prose, not bolded row chips, so momentum reads as evidence, not urgency. */
+.dash__momentum-list { list-style: none; margin: 14px 0 0; padding: 0; }
+.dash__momentum-item { padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 13px; line-height: 1.5; color: var(--muted); }
+.dash__momentum-item:last-child { border-bottom: none; }
+.dash__momentum-desc { color: var(--soft); }
+.dash__momentum-date { color: var(--muted); }
+
 /* Workstream detail — present but visually quieter than the sections above it. */
 .dash__block--quiet .dash__block-title { color: var(--soft); font-size: 15px; }
 .dash__wslist { margin-top: 12px; }
@@ -60,4 +76,7 @@
 @media (max-width: 640px) {
   .dash__title { font-size: 30px; }
   .dash__stats { gap: 24px; }
+  .dash__herotop { flex-direction: column; gap: 18px; }
+  .dash__countdown { text-align: left; }
+  .dash__countdown-value { font-size: 42px; }
 }

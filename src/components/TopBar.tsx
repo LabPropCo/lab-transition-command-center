@@ -1,3 +1,4 @@
+import { useLocation } from "react-router-dom";
 import { useTransition } from "../transitions/TransitionProvider";
 import { useAuth } from "../auth/AuthProvider";
 
@@ -10,8 +11,12 @@ function daysUntil(iso: string | null): number | null {
 export function TopBar() {
   const { transitions, selected, selectTransition, properties, propertyFilter, setPropertyFilter, loading, error, reload } = useTransition();
   const { user, signOut } = useAuth();
+  const location = useLocation();
   const d = selected ? daysUntil(selected.targetGoLive) : null;
-  const countdown = d === null ? "" : d > 0 ? `${d} days to go-live` : d === 0 ? "Go-live today" : `Live · day ${Math.abs(d)}`;
+  // The Dashboard hero already leads with this same fact as its largest
+  // figure — showing it again here would be pure repetition on that screen.
+  const onDashboard = location.pathname === "/dashboard";
+  const countdown = onDashboard ? "" : d === null ? "" : d > 0 ? `${d} days to go-live` : d === 0 ? "Go-live today" : `Live · day ${Math.abs(d)}`;
 
   // Distinguish the states that used to all collapse to "No transition".
   let heading: React.ReactNode;
