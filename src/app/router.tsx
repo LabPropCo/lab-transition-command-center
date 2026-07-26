@@ -6,6 +6,7 @@ import { RequireAuth } from "./RequireAuth";
 import { AppShell } from "./AppShell";
 import { Login } from "../screens/Login";
 import { Screen } from "../screens/Screen";
+import { Dashboard } from "../screens/Dashboard";
 import { WorkItems } from "../screens/WorkItems";
 import { AdminProvider } from "../admin/AdminProvider";
 import { RequireAdmin } from "../admin/RequireAdmin";
@@ -61,7 +62,9 @@ export const router = createBrowserRouter([
               // The rest of the app's screens (admin handled above).
               ...Object.values(SCREENS).filter((s) => s.key !== "admin").map((s) => ({
                 path: s.path.replace(/^\//, ""),
-                element: s.key === "work-items" ? <WorkItems /> : <Screen k={s.key} />,
+                element: s.key === "work-items" ? <WorkItems />
+                  : s.key === "dashboard" ? <Dashboard />
+                  : <Screen k={s.key} />,
               })),
               { path: "*", element: <NotFound /> },
             ],
