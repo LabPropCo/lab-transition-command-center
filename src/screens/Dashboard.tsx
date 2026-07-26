@@ -7,6 +7,7 @@ import {
   computePriorityItems,
   computeOwnerExposure,
   computeStalledWorkstreams,
+  computeTransitionStatus,
 } from "../lib/metrics";
 import "../styles/dashboard.css";
 
@@ -122,6 +123,30 @@ export function Dashboard() {
     return `${metrics.readinessPercent}% complete${goLiveDays !== null && goLiveDays > 0 ? ` with ${goLiveDays} day${goLiveDays === 1 ? "" : "s"} remaining` : ""}.`;
   }, [ready, ownerExposure, stalledWorkstreams, metrics, goLiveDays]);
 
+  const status = useMemo(
+    () => (ready ? computeTransitionStatus(scoped, metrics, ownerExposure, goLiveDays) : null),
+    [ready, scoped, metrics, ownerExposure, goLiveDays],
+  );
+
+  // The executive assessment's explanation: a level-specific factual lead-in,
+  // then the same governing statement used above — reused, not re-derived,
+  // so the two never contradict each other. On Track is a complete thought
+  // on its own; the other three levels lean on `focus` for the "why."
+  const assessment = useMemo(() => {
+    if (!status) return null;
+    const b = status.blockingOverdueCount;
+    switch (status.level) {
+      case "On Track":
+        return "All go-live gates remain on schedule. No critical-path items are currently overdue.";
+      case "Critical":
+        return `The current transition is unlikely to achieve the scheduled go-live date without executive intervention.${focus ? ` ${focus}` : ""}`;
+      default: {
+        const lead = `${cap(numberToWords(b))} critical-path or go-live-gate item${b === 1 ? "" : "s"} ${b === 1 ? "is" : "are"} overdue.`;
+        return focus ? `${lead} ${focus}` : lead;
+      }
+    }
+  }, [status, focus]);
+
   return (
     <section className="screen dash">
       <div className="dash__hero">
@@ -150,7 +175,13 @@ export function Dashboard() {
           </div>
         )}
 
-        {focus && <p className="dash__focus">{focus}</p>}
+        {status && assessment && (
+          <div className="dash__assessment">
+            <h2 className="dash__assessment-label">Transition status</h2>
+            <div className="dash__assessment-level">{status.level}</div>
+            <p className="dash__assessment-text">{assessment}</p>
+          </div>
+        )}
       </div>
 
       {err && <p className="dash__err">{err}</p>}

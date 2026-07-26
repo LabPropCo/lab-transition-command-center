@@ -14,13 +14,20 @@
 .dash__hero { margin-top: 8px; }
 .dash__eyebrow { font-family: var(--font-display); font-size: 20px; font-weight: 500; color: var(--soft); margin: 0; }
 
-.dash__focus { margin: 24px 0 0; max-width: 62ch; font-family: var(--font-display); font-size: 22px; font-weight: 500; line-height: 1.35; color: var(--ink); }
-
 /* The health metrics: four equal, quiet figures — no card, no border, no
    color-coding. A number and a caption, repeated, is the entire device. */
 .dash__stats { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 44px; }
 .dash__stat-value { font-family: var(--font-display); font-size: 32px; font-weight: 500; color: var(--ink); line-height: 1.1; }
 .dash__stat-label { margin-top: 6px; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+
+/* Executive Assessment — the interpretation, set apart from the raw metrics
+   above and the action lists below by a hairline, not a card. The level
+   word is plain ink, deliberately undecorated: no colored badge, because
+   the point is the sentence beneath it, not a traffic light. */
+.dash__assessment { margin-top: 32px; padding: 26px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); max-width: 62ch; }
+.dash__assessment-label { font-family: var(--font-body); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.dash__assessment-level { margin-top: 10px; font-family: var(--font-display); font-size: 28px; font-weight: 500; letter-spacing: -0.01em; color: var(--ink); }
+.dash__assessment-text { margin: 12px 0 0; font-size: 15px; line-height: 1.65; color: var(--soft); }
 
 /* ---------- Leadership content blocks ---------- */
 .dash__body { margin-top: 48px; max-width: 960px; }
@@ -49,9 +56,9 @@
 .dash__empty-body { font-size: 13.5px; color: var(--soft); max-width: 62ch; line-height: 1.55; }
 
 @media (max-width: 640px) {
-  .dash__focus { font-size: 19px; }
   .dash__stats { gap: 24px 32px; }
   .dash__stat-value { font-size: 26px; }
+  .dash__assessment-level { font-size: 23px; }
   .dash__ownerrow { grid-template-columns: 1fr; gap: 6px; }
   .dash__ownercount { text-align: left; }
 }
