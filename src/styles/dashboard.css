@@ -1,19 +1,26 @@
-/* Leadership Brief — one dominant message, not a collection of widgets.
-   Uses existing design tokens only; no new palette. Typography and
-   whitespace carry the hierarchy, not borders, boxes, or color. */
+/* Dashboard — an executive briefing, not a KPI grid. Metrics answer "what"
+   at a glance, in under ten seconds, with equal restrained weight; the
+   sentence beneath them answers "why" and "where to look." Uses existing
+   design tokens only; no new palette. Typography and whitespace carry the
+   hierarchy, not borders, boxes, or color. */
 
 .dash__err { font-size: 13px; color: var(--terra); background: rgba(165,98,74,0.08); border: 1px solid rgba(165,98,74,0.25); border-radius: 6px; padding: 9px 12px; margin: 22px 0 0; }
 .dash__loading { margin-top: 22px; font-size: 13px; color: var(--muted); }
 
-/* ---------- Hero: identity, the one dominant figure, the one sentence ---------- */
+/* ---------- Hero: identity, the health metrics, then the interpretation ----------
+   Metrics answer "what" and come first, at equal weight — no single number
+   is the hero. The one sentence below them answers "why" and "where to
+   look"; it's interpretation of the metrics, not a competing headline. */
 .dash__hero { margin-top: 8px; }
 .dash__eyebrow { font-family: var(--font-display); font-size: 20px; font-weight: 500; color: var(--soft); margin: 0; }
 
-.dash__countdown { margin-top: 10px; display: flex; align-items: baseline; gap: 10px; }
-.dash__countdown-value { font-family: var(--font-display); font-weight: 500; font-size: 56px; line-height: 1; color: var(--ink); }
-.dash__countdown-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); }
+.dash__focus { margin: 24px 0 0; max-width: 62ch; font-family: var(--font-display); font-size: 22px; font-weight: 500; line-height: 1.35; color: var(--ink); }
 
-.dash__focus { margin: 18px 0 0; max-width: 62ch; font-family: var(--font-display); font-size: 24px; font-weight: 500; line-height: 1.35; color: var(--ink); }
+/* The health metrics: four equal, quiet figures — no card, no border, no
+   color-coding. A number and a caption, repeated, is the entire device. */
+.dash__stats { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 44px; }
+.dash__stat-value { font-family: var(--font-display); font-size: 32px; font-weight: 500; color: var(--ink); line-height: 1.1; }
+.dash__stat-label { margin-top: 6px; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
 
 /* ---------- Leadership content blocks ---------- */
 .dash__body { margin-top: 48px; max-width: 960px; }
@@ -37,20 +44,14 @@
 .dash__ownerfill { height: 100%; background: var(--gold); border-radius: 999px; }
 .dash__ownercount { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; }
 
-/* ---------- Supporting evidence — last, smallest, and quietest on the page.
-   It supports the brief above; it is not the brief. ---------- */
-.dash__stats { display: flex; flex-wrap: wrap; gap: 48px; margin-top: 72px; padding-top: 22px; border-top: 1px solid var(--line); }
-.dash__stat-value { font-family: var(--font-display); font-size: 22px; font-weight: 500; color: var(--ink); line-height: 1.1; }
-.dash__stat-label { margin-top: 5px; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
-
 .dash__empty { margin-top: 28px; border: 1px dashed var(--line); border-radius: var(--radius); background: var(--card); padding: 34px; display: flex; flex-direction: column; gap: 10px; }
 .dash__empty-head { font-family: var(--font-display); font-size: 18px; color: var(--ink); }
 .dash__empty-body { font-size: 13.5px; color: var(--soft); max-width: 62ch; line-height: 1.55; }
 
 @media (max-width: 640px) {
-  .dash__focus { font-size: 20px; }
-  .dash__countdown-value { font-size: 42px; }
-  .dash__stats { gap: 24px; }
+  .dash__focus { font-size: 19px; }
+  .dash__stats { gap: 24px 32px; }
+  .dash__stat-value { font-size: 26px; }
   .dash__ownerrow { grid-template-columns: 1fr; gap: 6px; }
   .dash__ownercount { text-align: left; }
 }

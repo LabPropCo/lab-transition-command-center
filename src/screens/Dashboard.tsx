@@ -125,13 +125,31 @@ export function Dashboard() {
   return (
     <section className="screen dash">
       <div className="dash__hero">
-        <p className="dash__eyebrow">{selected?.name ?? "Leadership Brief"}</p>
-        {countdown && (
-          <div className="dash__countdown">
-            <span className="dash__countdown-value">{countdown.value}</span>
-            <span className="dash__countdown-label">{countdown.label}</span>
+        <p className="dash__eyebrow">{selected?.name ?? "Dashboard"}</p>
+
+        {ready && (
+          <div className="dash__stats">
+            {countdown && (
+              <div className="dash__stat">
+                <div className="dash__stat-value">{countdown.value}</div>
+                <div className="dash__stat-label">{countdown.label}</div>
+              </div>
+            )}
+            <div className="dash__stat">
+              <div className="dash__stat-value">{metrics.readinessPercent}%</div>
+              <div className="dash__stat-label">Complete</div>
+            </div>
+            <div className="dash__stat">
+              <div className="dash__stat-value">{metrics.criticalPath.completed}/{metrics.criticalPath.total}</div>
+              <div className="dash__stat-label">Critical path</div>
+            </div>
+            <div className="dash__stat">
+              <div className="dash__stat-value">{metrics.goLiveGate.completed}/{metrics.goLiveGate.total}</div>
+              <div className="dash__stat-label">Go-live gates</div>
+            </div>
           </div>
         )}
+
         {focus && <p className="dash__focus">{focus}</p>}
       </div>
 
@@ -188,21 +206,6 @@ export function Dashboard() {
               </div>
             </section>
           )}
-
-          <div className="dash__stats">
-            <div className="dash__stat">
-              <div className="dash__stat-value">{metrics.goLiveGate.completed}/{metrics.goLiveGate.total}</div>
-              <div className="dash__stat-label">Go-live gates</div>
-            </div>
-            <div className="dash__stat">
-              <div className="dash__stat-value">{metrics.criticalPath.completed}/{metrics.criticalPath.total}</div>
-              <div className="dash__stat-label">Critical path</div>
-            </div>
-            <div className="dash__stat">
-              <div className="dash__stat-value">{metrics.readinessPercent}%</div>
-              <div className="dash__stat-label">Complete</div>
-            </div>
-          </div>
         </div>
       )}
     </section>
