@@ -1,29 +1,54 @@
-/* Executive Dashboard — uses existing design tokens only; no new palette. */
+/* Executive Dashboard — an executive briefing, not a grid of stat cards.
+   Uses existing design tokens only; no new palette. Typography and spacing
+   carry the hierarchy; color is a restrained, secondary signal only. */
 
 .dash__err { font-size: 13px; color: var(--terra); background: rgba(165,98,74,0.08); border: 1px solid rgba(165,98,74,0.25); border-radius: 6px; padding: 9px 12px; margin: 22px 0 0; }
 .dash__loading { margin-top: 22px; font-size: 13px; color: var(--muted); }
 
-.dash__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-top: 22px; }
-.dash__tile { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
-.dash__tile-label { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-.dash__tile-value { font-family: var(--font-display); font-size: 30px; font-weight: 500; color: var(--ink); margin-top: 8px; line-height: 1.1; }
-.dash__tile-value--terra { color: var(--terra); }
-.dash__tile-value--gold { color: var(--gold); }
-.dash__tile-sub { font-size: 12px; color: var(--soft); margin-top: 6px; }
+/* ---------- Hero: the executive summary ---------- */
+.dash__hero { margin-top: 8px; max-width: 62ch; }
+.dash__eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.dash__status { font-family: var(--font-display); font-weight: 500; font-size: 52px; line-height: 1.05; letter-spacing: -0.01em; color: var(--ink); margin: 10px 0 0; }
+.dash__status--good { color: var(--gold); }
+.dash__status--attention { color: var(--terra); }
+.dash__status--neutral { color: var(--ink); }
+.dash__phase { margin: 6px 0 0; font-size: 15px; color: var(--soft); }
+.dash__narrative { margin: 18px 0 0; font-size: 15px; line-height: 1.65; color: var(--soft); }
 
-.dash__section { margin-top: 30px; }
-.dash__section-title { font-family: var(--font-display); font-size: 18px; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
-.dash__section-deck { font-size: 12.5px; color: var(--soft); }
+/* ---------- Quiet stat strip (not boxed tiles) ---------- */
+.dash__stats { display: flex; flex-wrap: wrap; gap: 36px; margin-top: 40px; padding-top: 22px; border-top: 1px solid var(--line); }
+.dash__stat-value { font-family: var(--font-display); font-size: 26px; font-weight: 500; color: var(--ink); line-height: 1.1; }
+.dash__stat-label { margin-top: 4px; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
 
-.dash__wslist { margin-top: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 6px 18px; }
-.dash__wsrow { padding: 12px 0; border-bottom: 1px solid var(--line); }
+/* ---------- Editorial content blocks ---------- */
+.dash__body { max-width: 74ch; }
+.dash__block { margin-top: 44px; }
+.dash__block-title { font-family: var(--font-display); font-size: 17px; font-weight: 500; color: var(--ink); margin: 0 0 4px; }
+.dash__quiet { margin-top: 10px; font-size: 13.5px; color: var(--muted); }
+
+.dash__list { list-style: none; margin: 14px 0 0; padding: 0; }
+.dash__row { display: flex; align-items: baseline; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.dash__row:last-child { border-bottom: none; }
+.dash__row-code { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--soft); white-space: nowrap; }
+.dash__row-desc { flex: 1; color: var(--ink); }
+.dash__row-meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+/* Workstream detail — present but visually quieter than the sections above it. */
+.dash__block--quiet .dash__block-title { color: var(--soft); font-size: 15px; }
+.dash__wslist { margin-top: 12px; }
+.dash__wsrow { padding: 10px 0; border-bottom: 1px solid var(--line); }
 .dash__wsrow:last-child { border-bottom: none; }
-.dash__wshead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--ink); margin-bottom: 7px; }
-.dash__wsname { font-weight: 600; }
-.dash__wscount { color: var(--muted); font-size: 12px; white-space: nowrap; }
-.dash__wstrack { height: 7px; border-radius: 999px; background: var(--panel); overflow: hidden; }
+.dash__wshead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 12.5px; color: var(--soft); margin-bottom: 6px; }
+.dash__wsname { font-weight: 600; color: var(--ink); }
+.dash__wscount { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
+.dash__wstrack { height: 5px; border-radius: 999px; background: var(--panel); overflow: hidden; }
 .dash__wsfill { height: 100%; background: var(--gold); border-radius: 999px; }
 
 .dash__empty { margin-top: 28px; border: 1px dashed var(--line); border-radius: var(--radius); background: var(--card); padding: 34px; display: flex; flex-direction: column; gap: 10px; }
 .dash__empty-head { font-family: var(--font-display); font-size: 18px; color: var(--ink); }
 .dash__empty-body { font-size: 13.5px; color: var(--soft); max-width: 62ch; line-height: 1.55; }
+
+@media (max-width: 640px) {
+  .dash__status { font-size: 38px; }
+  .dash__stats { gap: 24px; }
+}

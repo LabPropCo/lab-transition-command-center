@@ -86,6 +86,36 @@ export function computePhaseMilestones(items: WorkItem[]): PhaseMilestone[] {
     .sort((a, b) => a.phaseOrder - b.phaseOrder);
 }
 
+// Highest-priority open items for an executive "needs attention" view: overdue
+// and on the critical path or a go-live gate. Sorted most-overdue first.
+// Non-mutating; tolerates missing/invalid due dates via isOverdue's own guard.
+export function computePriorityItems(items: WorkItem[], limit = 5): WorkItem[] {
+  const safeItems = Array.isArray(items) ? items : [];
+  return safeItems
+    .filter((w) => isOverdue(w) && (w.criticalPath === true || w.goLiveGate === true))
+    .slice()
+    .sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""))
+    .slice(0, limit);
+}
+
+// Recently completed items, for an executive "recent progress" view — the
+// honest substitute for a trend line, since no historical/time-series data
+// exists in this schema. Sorted most-recent first.
+export function computeRecentProgress(items: WorkItem[], days = 14, limit = 5): WorkItem[] {
+  const safeItems = Array.isArray(items) ? items : [];
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  return safeItems
+    .filter((w) => {
+      if (!w.completedAt) return false;
+      const d = new Date(w.completedAt);
+      return !Number.isNaN(d.getTime()) && d >= cutoff;
+    })
+    .slice()
+    .sort((a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? ""))
+    .slice(0, limit);
+}
+
 export function computeDashboardMetrics(items: WorkItem[]): DashboardMetrics {
   const safeItems = Array.isArray(items) ? items : [];
 
