@@ -1,5 +1,6 @@
 import { supabase } from "../lib/supabase";
 import type { WorkItem, WorkItemPatch } from "./types";
+import type { WorkOwner } from "../types";
 import { DEMO_MODE } from "../demo/config";
 
 const COLS =
@@ -29,6 +30,21 @@ export async function listWorkItems(transitionId: string): Promise<WorkItem[]> {
     .from("work_items").select(COLS).eq("transition_id", transitionId).order("sort_order");
   if (error) throw error;
   return (data ?? []).map(mapRow);
+}
+
+// Active owners for the Owner dropdown (Work Items + Methodology templates).
+// Readable by any authenticated user (RLS: work_owners_read, 0015).
+export async function listActiveOwners(): Promise<WorkOwner[]> {
+  if (DEMO_MODE) { const s = await import("../demo/store"); return s.demoOwners().filter((o) => o.active); }
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("work_owners").select("id,display_name,active,sort_order")
+    .eq("active", true)
+    .order("sort_order", { ascending: true, nullsFirst: false })
+    .order("display_name", { ascending: true });
+  if (error) throw error;
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  return (data ?? []).map((r: any) => ({ id: r.id, displayName: r.display_name, active: r.active, sortOrder: r.sort_order }));
 }
 
 export async function updateWorkItem(id: string, patch: WorkItemPatch): Promise<WorkItem> {

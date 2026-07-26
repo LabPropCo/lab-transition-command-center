@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTransition } from "../transitions/TransitionProvider";
-import { listWorkItems, updateWorkItem } from "../work-items/api";
+import { listWorkItems, updateWorkItem, listActiveOwners } from "../work-items/api";
 import type { WorkItem, WorkItemPatch } from "../work-items/types";
+import type { WorkOwner } from "../types";
 import { STATUSES, statusColor, priorityColor } from "../work-items/constants";
 import { WorkItemDetail } from "../components/WorkItemDetail";
 import { SCREENS } from "../lib/nav";
@@ -18,6 +19,7 @@ function overdue(w: WorkItem): boolean {
 export function WorkItems() {
   const { selected, properties, propertyFilter, setPropertyFilter } = useTransition();
   const [items, setItems] = useState<WorkItem[]>([]);
+  const [owners, setOwners] = useState<WorkOwner[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [q, setQ] = useState("");
@@ -42,6 +44,14 @@ export function WorkItems() {
       .catch((e) => { if (active) { setErr(e.message ?? "Failed to load"); setLoading(false); } });
     return () => { active = false; };
   }, [selected]);
+
+  useEffect(() => {
+    let active = true;
+    listActiveOwners()
+      .then((o) => { if (active) setOwners(o); })
+      .catch((e) => console.error("[owners] load failed", e));
+    return () => { active = false; };
+  }, []);
 
   const workstreams = useMemo(() => Array.from(new Set(items.map((i) => i.workstream).filter(Boolean))) as string[], [items]);
   const phases = useMemo(() => {
@@ -185,6 +195,7 @@ export function WorkItems() {
           allItems={items}
           transitionName={selected?.name ?? ""}
           propertyName={propName(open.propertyId)}
+          owners={owners}
           onClose={() => setOpenId(null)}
           onSave={(patch) => applyPatch(open.id, patch)}
         />

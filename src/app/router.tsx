@@ -14,6 +14,7 @@ import { AdminDashboard } from "../screens/admin/AdminDashboard";
 import { TransitionSettings } from "../screens/admin/TransitionSettings";
 import { MethodologyLibrary } from "../screens/admin/MethodologyLibrary";
 import { Properties } from "../screens/admin/Properties";
+import { Owners } from "../screens/admin/Owners";
 import { NotFound } from "../screens/NotFound";
 import { SCREENS } from "../lib/nav";
 import { DevBanner } from "../components/DevBanner";
@@ -57,6 +58,7 @@ export const router = createBrowserRouter([
                   { path: "transition-settings", element: <TransitionSettings /> },
                   { path: "methodology", element: <MethodologyLibrary /> },
                   { path: "properties", element: <Properties /> },
+                  { path: "owners", element: <Owners /> },
                 ],
               },
               // The rest of the app's screens (admin handled above).

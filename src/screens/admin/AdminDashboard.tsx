@@ -26,6 +26,11 @@ export function AdminDashboard() {
           <div className="admin__card-deck">{properties.length} in this transition — rename, edit, add, activate.</div>
           <div className="admin__card-meta">Manage properties</div>
         </Link>
+        <Link to="/admin/owners" className="admin__card">
+          <div className="admin__card-title">Owners</div>
+          <div className="admin__card-deck">The roster offered in every Owner dropdown — add, rename, activate.</div>
+          <div className="admin__card-meta">Manage owners</div>
+        </Link>
         <div className="admin__card admin__card--soon" aria-disabled>
           <div className="admin__card-title">Users</div>
           <div className="admin__card-deck">Invite, roles, and transition/property assignment.</div>

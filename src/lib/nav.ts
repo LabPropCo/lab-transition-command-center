@@ -53,4 +53,5 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { path: "/admin/transition-settings", title: "Transition Settings" },
   { path: "/admin/methodology", title: "Methodology Library" },
   { path: "/admin/properties", title: "Properties" },
+  { path: "/admin/owners", title: "Owners" },
 ];

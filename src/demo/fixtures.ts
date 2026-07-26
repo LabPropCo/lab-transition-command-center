@@ -1,7 +1,18 @@
 // AUTO-GENERATED demo fixtures — local UI review only (DEMO_MODE).
 // Arkansas Portfolio Transition: 2 properties, 35 shared + 71 per-property items.
 import type { WorkItem } from "../work-items/types";
-import type { Transition, Property } from "../types";
+import type { Transition, Property, WorkOwner } from "../types";
+
+// Mirrors the seed in supabase/migrations/0015_work_owners.sql so demo mode
+// (fully offline, no Supabase) still offers a real Owner dropdown.
+export const DEMO_OWNERS: WorkOwner[] = [
+  { id: "demo-owner-1", displayName: "Dana Whitfield", active: true, sortOrder: 1 },
+  { id: "demo-owner-2", displayName: "Marcus Vidal", active: true, sortOrder: 2 },
+  { id: "demo-owner-3", displayName: "Priya Anand", active: true, sortOrder: 3 },
+  { id: "demo-owner-4", displayName: "Theo Bianchi", active: true, sortOrder: 4 },
+  { id: "demo-owner-5", displayName: "Rosa Marin", active: true, sortOrder: 5 },
+  { id: "demo-owner-6", displayName: "IT Support", active: true, sortOrder: 6 },
+];
 
 export const DEMO_TRANSITION: Transition = {
   id: "demo-arkansas", name: "Arkansas Portfolio Transition", ownershipGroup: "Larkspur Capital Partners",

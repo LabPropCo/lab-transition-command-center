@@ -5,7 +5,8 @@ export const STATUSES = [
 
 export const PRIORITIES = ["Critical", "High", "Medium", "Low"] as const;
 export const RESP_PARTIES = ["The Lab", "Client", "Prior Manager", "Vendor", "Shared"] as const;
-export const OWNERS = ["Dana Whitfield", "Marcus Vidal", "Priya Anand", "Theo Bianchi", "Rosa Marin", "IT Support"] as const;
+// Owner options come from the admin-managed work_owners roster (see
+// work-items/api.ts listActiveOwners) — not a hard-coded list.
 
 // Status → dot color, drawn from the approved palette.
 export function statusColor(status: string): string {
