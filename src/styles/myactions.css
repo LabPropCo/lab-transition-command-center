@@ -9,16 +9,22 @@
 .ma__loading { margin-top: 22px; font-size: 13px; color: var(--muted); }
 .ma__empty { margin-top: 40px; font-size: 15px; color: var(--soft); }
 
-/* Four understated metrics — a number and a caption, nothing else. */
+/* Four understated metrics — a number and a caption, nothing else. Each is
+   a real <button>: clicking scrolls to its section (or, if that section is
+   empty, gives a brief, subtle pulse instead of navigating nowhere). */
 .ma__stats { margin-top: 32px; padding-top: 22px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 44px; }
+.ma__stat { appearance: none; background: none; border: none; padding: 0; margin: 0; text-align: left; cursor: pointer; font: inherit; }
 .ma__stat-value { font-family: var(--font-display); font-size: 32px; font-weight: 500; color: var(--ink); line-height: 1.1; }
 .ma__stat-label { margin-top: 6px; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+@keyframes ma-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.ma__stat--pulse { animation: ma-pulse 0.6s ease; }
 
 .ma__body { margin-top: 48px; max-width: 780px; }
-.ma__group { margin-top: 44px; }
-.ma__body > .ma__group:first-child { margin-top: 0; }
+.ma__group { margin-top: 44px; scroll-margin-top: 24px; }
+.ma__body > .ma__group:first-child, .ma__body > .ma__quiet--lead:first-child { margin-top: 0; }
 .ma__group-title { font-family: var(--font-display); font-size: 17px; font-weight: 500; color: var(--ink); margin: 0 0 4px; }
 .ma__quiet { margin-top: 10px; font-size: 13.5px; color: var(--muted); }
+.ma__quiet--lead { margin-top: 0; font-size: 15px; color: var(--soft); }
 
 .ma__list { list-style: none; margin: 14px 0 0; padding: 0; }
 .ma__row { padding: 14px 0; border-bottom: 1px solid var(--line); cursor: pointer; }

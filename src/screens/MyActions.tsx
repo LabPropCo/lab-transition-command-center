@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTransition } from "../transitions/TransitionProvider";
 import { useAuth } from "../auth/AuthProvider";
 import { supabase } from "../lib/supabase";
@@ -6,10 +6,22 @@ import { DEMO_MODE } from "../demo/config";
 import { listWorkItemsForTransitions, getCurrentUserDisplayName, updateWorkItem, listActiveOwners } from "../work-items/api";
 import type { WorkItem, WorkItemPatch } from "../work-items/types";
 import type { WorkOwner } from "../types";
-import { computeMyActions, isOverdue } from "../lib/metrics";
+import { computeMyActions, isOverdue, type MyActionsGroups } from "../lib/metrics";
 import { WorkItemDetail } from "../components/WorkItemDetail";
 import { SCREENS } from "../lib/nav";
 import "../styles/myactions.css";
+
+// The four sections a summary stat can scroll to. Executive Attention
+// Required and Go-Live Gates don't have their own stat (the stat row is
+// unchanged from v1.0 on purpose — this release re-orders and re-labels
+// what's underneath it, not the visual footprint above it).
+type ScrollTarget = "overdue" | "dueThisWeek" | "criticalPath" | "blocked";
+
+// The section a row lives in never needs to repeat its own reason for
+// being there — e.g. a row already under Critical Path doesn't also need
+// a "Critical Path" tag. Everywhere else, a flag it happens to also carry
+// is genuinely new information, so it's shown.
+type SectionKey = keyof Omit<MyActionsGroups, "counts">;
 
 function daysOverdue(iso: string): number {
   const due = new Date(iso + "T00:00:00");
@@ -34,34 +46,52 @@ function dueLabel(w: WorkItem): string {
   return `Due ${formatDate(w.dueDate)}`;
 }
 
-// Critical Path and Go-Live Gate are independent booleans, so they earn
-// their own tags. "Blocked" is not — it IS the status value (isBlocked(w)
-// is defined as status === "Blocked"), and status is always shown at the
-// end of the row already, so a separate "Blocked" tag would just repeat
-// the same word a few characters later. The status field is the blocked
-// indicator; nothing else needs to say it again.
-function flagLabels(w: WorkItem): string[] {
+const WAITING_PREFIX = "Waiting on ";
+
+// Only what helps decide what to work on next. Critical Path / Go-Live
+// Gate are shown unless the row's own section already says so. "Waiting
+// on X" tells you whose court the ball is in — genuinely decision-
+// relevant, unlike "Not Started"/"In Progress", which aren't, so those are
+// never shown at all. "Blocked" and "Executive Priority" never appear as
+// tags: both are entirely determined by fields already used to place the
+// row in its section (status === "Blocked", priority === "Critical"), so
+// a tag would either repeat the section header it's already under, or —
+// for Executive Attention Required specifically — could never fire
+// anywhere else, since any Critical-priority item is always sectioned
+// there first.
+function flagLabels(w: WorkItem, section: SectionKey): string[] {
   const flags: string[] = [];
-  if (w.criticalPath) flags.push("Critical Path");
-  if (w.goLiveGate) flags.push("Go-Live Gate");
+  if (w.criticalPath && section !== "criticalPath") flags.push("Critical Path");
+  if (w.goLiveGate && section !== "goLiveGates") flags.push("Go-Live Gate");
+  if (w.status.startsWith(WAITING_PREFIX)) flags.push(`Waiting On ${w.status.slice(WAITING_PREFIX.length)}`);
   return flags;
 }
 
 interface ActionRowProps {
   item: WorkItem;
+  section: SectionKey;
   scopeLabel: string;
   onOpen: () => void;
 }
 
-function ActionRow({ item, scopeLabel, onOpen }: ActionRowProps) {
+function ActionRow({ item, section, scopeLabel, onOpen }: ActionRowProps) {
   return (
     <li className="ma__row" onClick={onOpen}>
       <div className="ma__row-title">{item.description}</div>
       <div className="ma__row-scope">{scopeLabel}</div>
-      <div className="ma__row-meta">{[dueLabel(item), ...flagLabels(item), item.status].join(" · ")}</div>
+      <div className="ma__row-meta">{[dueLabel(item), ...flagLabels(item, section)].join(" · ")}</div>
     </li>
   );
 }
+
+const SECTION_TITLES: Record<Exclude<SectionKey, "everythingElse">, string> = {
+  executiveAttention: "Executive attention required",
+  criticalPath: "Critical path",
+  goLiveGates: "Go-live gates",
+  blocked: "Blocked",
+  overdue: "Overdue",
+  dueThisWeek: "Due this week",
+};
 
 export function MyActions() {
   const { transitions } = useTransition();
@@ -74,9 +104,17 @@ export function MyActions() {
   const [err, setErr] = useState("");
   const [transitionFilter, setTransitionFilter] = useState<string>("all");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [pulsing, setPulsing] = useState<ScrollTarget | null>(null);
 
   const transitionIds = useMemo(() => transitions.map((t) => t.id), [transitions]);
   const transitionNames = useMemo(() => new Map(transitions.map((t) => [t.id, t.name])), [transitions]);
+
+  const sectionRefs = {
+    overdue: useRef<HTMLElement>(null),
+    dueThisWeek: useRef<HTMLElement>(null),
+    criticalPath: useRef<HTMLElement>(null),
+    blocked: useRef<HTMLElement>(null),
+  };
 
   useEffect(() => {
     let active = true;
@@ -133,6 +171,12 @@ export function MyActions() {
     [items, transitionFilter],
   );
 
+  // The full personal-workspace computation lives in metrics.ts and returns
+  // plain counts + arrays, not JSX — a future daily-briefing surface (e.g.
+  // "Good morning, Jessica") could read the exact same `groups` shape (plus
+  // the Dashboard's own executive-assessment status for this transition)
+  // without any of this screen's rendering logic. Not built yet; the data
+  // it would need already is.
   const groups = useMemo(
     () => (displayName ? computeMyActions(scoped, displayName) : null),
     [scoped, displayName],
@@ -157,9 +201,42 @@ export function MyActions() {
     }
   }
 
+  function handleStatClick(target: ScrollTarget) {
+    if (!groups) return;
+    const ref = sectionRefs[target];
+    if (groups.counts[target] === 0 || !ref.current) {
+      setPulsing(target);
+      window.setTimeout(() => setPulsing((p) => (p === target ? null : p)), 600);
+      return;
+    }
+    ref.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function renderSection(key: Exclude<SectionKey, "everythingElse">, list: WorkItem[]) {
+    if (list.length === 0) return null;
+    const ref = key in sectionRefs ? sectionRefs[key as ScrollTarget] : undefined;
+    return (
+      <section className="ma__group" key={key} ref={ref}>
+        <h2 className="ma__group-title">{SECTION_TITLES[key]}</h2>
+        <ol className="ma__list">
+          {list.map((w) => (
+            <ActionRow key={w.id} item={w} section={key} scopeLabel={scopeLabel(w)} onOpen={() => setOpenId(w.id)} />
+          ))}
+        </ol>
+      </section>
+    );
+  }
+
   const open = items.find((w) => w.id === openId) ?? null;
-  const totalMine = groups ? groups.needsAttention.length + groups.dueThisWeek.length + groups.later.length : 0;
+  const totalMine = groups
+    ? groups.executiveAttention.length + groups.criticalPath.length + groups.goLiveGates.length
+      + groups.blocked.length + groups.overdue.length + groups.dueThisWeek.length + groups.everythingElse.length
+    : 0;
   const s = SCREENS.myactions;
+  const urgentEmpty = groups
+    ? groups.executiveAttention.length === 0 && groups.criticalPath.length === 0
+      && groups.goLiveGates.length === 0 && groups.blocked.length === 0 && groups.overdue.length === 0
+    : false;
 
   return (
     <section className="screen ma">
@@ -183,57 +260,56 @@ export function MyActions() {
         ) : (
           <>
             <div className="ma__stats">
-              <div className="ma__stat">
+              <button type="button" className={"ma__stat" + (pulsing === "overdue" ? " ma__stat--pulse" : "")} onClick={() => handleStatClick("overdue")}>
                 <div className="ma__stat-value">{groups.counts.overdue}</div>
                 <div className="ma__stat-label">Overdue</div>
-              </div>
-              <div className="ma__stat">
+              </button>
+              <button type="button" className={"ma__stat" + (pulsing === "dueThisWeek" ? " ma__stat--pulse" : "")} onClick={() => handleStatClick("dueThisWeek")}>
                 <div className="ma__stat-value">{groups.counts.dueThisWeek}</div>
                 <div className="ma__stat-label">Due this week</div>
-              </div>
-              <div className="ma__stat">
+              </button>
+              <button type="button" className={"ma__stat" + (pulsing === "criticalPath" ? " ma__stat--pulse" : "")} onClick={() => handleStatClick("criticalPath")}>
                 <div className="ma__stat-value">{groups.counts.criticalPath}</div>
                 <div className="ma__stat-label">Critical path</div>
-              </div>
-              <div className="ma__stat">
+              </button>
+              <button type="button" className={"ma__stat" + (pulsing === "blocked" ? " ma__stat--pulse" : "")} onClick={() => handleStatClick("blocked")}>
                 <div className="ma__stat-value">{groups.counts.blocked}</div>
                 <div className="ma__stat-label">Blocked</div>
-              </div>
+              </button>
             </div>
 
             <div className="ma__body">
-              <section className="ma__group">
-                <h2 className="ma__group-title">Needs attention</h2>
-                {groups.needsAttention.length === 0 ? (
-                  <p className="ma__quiet">Nothing needs immediate attention. Your upcoming work appears below.</p>
-                ) : (
-                  <ol className="ma__list">
-                    {groups.needsAttention.map((w) => (
-                      <ActionRow key={w.id} item={w} scopeLabel={scopeLabel(w)} onOpen={() => setOpenId(w.id)} />
-                    ))}
-                  </ol>
+              {urgentEmpty
+                ? <p className="ma__quiet ma__quiet--lead">Nothing requires urgent attention right now.</p>
+                : (
+                  <>
+                    {renderSection("executiveAttention", groups.executiveAttention)}
+                    {renderSection("criticalPath", groups.criticalPath)}
+                    {renderSection("goLiveGates", groups.goLiveGates)}
+                    {renderSection("blocked", groups.blocked)}
+                    {renderSection("overdue", groups.overdue)}
+                  </>
                 )}
-              </section>
 
-              <section className="ma__group">
+              <section className="ma__group" ref={sectionRefs.dueThisWeek}>
                 <h2 className="ma__group-title">Due this week</h2>
                 {groups.dueThisWeek.length === 0 ? (
-                  <p className="ma__quiet">No additional items are due this week.</p>
+                  <p className="ma__quiet">You're caught up for this week.</p>
                 ) : (
                   <ol className="ma__list">
                     {groups.dueThisWeek.map((w) => (
-                      <ActionRow key={w.id} item={w} scopeLabel={scopeLabel(w)} onOpen={() => setOpenId(w.id)} />
+                      <ActionRow key={w.id} item={w} section="dueThisWeek" scopeLabel={scopeLabel(w)} onOpen={() => setOpenId(w.id)} />
                     ))}
                   </ol>
                 )}
               </section>
 
-              {groups.later.length > 0 && (
+              {groups.everythingElse.length > 0 && (
                 <section className="ma__group">
-                  <h2 className="ma__group-title">Later</h2>
+                  <h2 className="ma__group-title">Everything else</h2>
                   <ol className="ma__list">
-                    {groups.later.map((w) => (
-                      <ActionRow key={w.id} item={w} scopeLabel={scopeLabel(w)} onOpen={() => setOpenId(w.id)} />
+                    {groups.everythingElse.map((w) => (
+                      <ActionRow key={w.id} item={w} section="everythingElse" scopeLabel={scopeLabel(w)} onOpen={() => setOpenId(w.id)} />
                     ))}
                   </ol>
                 </section>

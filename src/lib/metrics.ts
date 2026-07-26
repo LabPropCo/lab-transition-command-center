@@ -192,28 +192,20 @@ function isDueThisWeek(w: WorkItem, today: Date, weekEnd: Date): boolean {
 
 const MY_ACTIONS_PRIORITY_RANK: Record<string, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
 
-// The documented sort for every group on My Actions, applied as a strict
-// tie-breaking chain — each tier only decides ties left by the one before
-// it: (1) go-live gate, (2) critical path, (3) blocked, (4) most overdue,
-// (5) earliest due date, (6) the priority field, (7) title alphabetically,
-// so the order is always fully deterministic even when every real signal
-// ties.
+// The residual sort within a My Actions section. Which of the seven
+// sections an item lands in (see computeMyActions) already encodes
+// go-live-gate / critical-path / blocked / executive-priority, so none of
+// those need to be sort keys here — every item in a given section already
+// ties on them. What's left to break ties: (1) most overdue, (2) earliest
+// due date, (3) the priority field (sections other than Executive
+// Attention Required can still mix Critical/High/Medium/Low), (4) title
+// alphabetically, so the order is always fully deterministic.
 function compareMyActions(a: WorkItem, b: WorkItem): number {
-  const gate = Number(b.goLiveGate === true) - Number(a.goLiveGate === true);
-  if (gate !== 0) return gate;
-
-  const crit = Number(b.criticalPath === true) - Number(a.criticalPath === true);
-  if (crit !== 0) return crit;
-
-  const blocked = Number(isBlocked(b)) - Number(isBlocked(a));
-  if (blocked !== 0) return blocked;
-
   const overdueA = isOverdue(a) && a.dueDate ? daysPastDue(a.dueDate) : 0;
   const overdueB = isOverdue(b) && b.dueDate ? daysPastDue(b.dueDate) : 0;
   if (overdueA !== overdueB) return overdueB - overdueA;
 
-  // Items with no due date sort after every dated item within a group; the
-  // "Later" group additionally documents this in its own JSDoc below.
+  // Items with no due date sort after every dated item within a section.
   const dueA = a.dueDate ?? "9999-99-99";
   const dueB = b.dueDate ?? "9999-99-99";
   if (dueA !== dueB) return dueA.localeCompare(dueB);
@@ -232,16 +224,28 @@ export interface MyActionsCounts {
   blocked: number;
 }
 
+// Seven sections, in operational-importance order — not date order. Every
+// active assigned item lands in exactly one, decided by the first test it
+// matches, top to bottom: an item that's both Critical-priority and
+// overdue shows up under Executive Attention Required, not Overdue,
+// because that's the more useful place for it to surface. `counts` are
+// each section's own length (not an independent re-filter), so a stat can
+// never disagree with the section it scrolls to.
 export interface MyActionsGroups {
-  needsAttention: WorkItem[]; // overdue, blocked, or both — sorted, see compareMyActions
-  dueThisWeek: WorkItem[];    // due today through the end of this week; excludes anything already above
-  later: WorkItem[];          // everything else active; items with no due date sort to the bottom
-  counts: MyActionsCounts;    // computed from the same grouped arrays, so these can never drift from what's shown
+  executiveAttention: WorkItem[]; // priority === "Critical"
+  criticalPath: WorkItem[];       // critical_path, not already above
+  goLiveGates: WorkItem[];        // go_live_gate, not already above
+  blocked: WorkItem[];            // status === "Blocked", not already above
+  overdue: WorkItem[];            // isOverdue(), not already above
+  dueThisWeek: WorkItem[];        // due today through the end of this week, not already above
+  everythingElse: WorkItem[];     // everything else active; items with no due date sort to the bottom
+  counts: MyActionsCounts;
 }
 
-// Filters to active items assigned to `displayName`, groups them, and sorts
-// each group. `now` is only a parameter so this stays testable without
-// mocking the system clock; real callers omit it.
+// Filters to active items assigned to `displayName`, buckets them by
+// business impact, and sorts each bucket. `now` is only a parameter so
+// this stays testable without mocking the system clock; real callers omit
+// it.
 export function computeMyActions(items: WorkItem[], displayName: string, now: Date = new Date()): MyActionsGroups {
   const safeItems = Array.isArray(items) ? items : [];
   const today = new Date(now.toDateString());
@@ -249,29 +253,40 @@ export function computeMyActions(items: WorkItem[], displayName: string, now: Da
 
   const mine = safeItems.filter((w) => isActiveStatus(w) && isAssignedTo(w, displayName));
 
-  const needsAttention: WorkItem[] = [];
+  const executiveAttention: WorkItem[] = [];
+  const criticalPath: WorkItem[] = [];
+  const goLiveGates: WorkItem[] = [];
+  const blocked: WorkItem[] = [];
+  const overdue: WorkItem[] = [];
   const dueThisWeek: WorkItem[] = [];
-  const later: WorkItem[] = [];
+  const everythingElse: WorkItem[] = [];
 
   for (const w of mine) {
-    if (isOverdue(w) || isBlocked(w)) needsAttention.push(w);
+    if (w.priority === "Critical") executiveAttention.push(w);
+    else if (w.criticalPath === true) criticalPath.push(w);
+    else if (w.goLiveGate === true) goLiveGates.push(w);
+    else if (isBlocked(w)) blocked.push(w);
+    else if (isOverdue(w)) overdue.push(w);
     else if (isDueThisWeek(w, today, weekEnd)) dueThisWeek.push(w);
-    else later.push(w);
+    else everythingElse.push(w);
   }
 
-  needsAttention.sort(compareMyActions);
-  dueThisWeek.sort(compareMyActions);
-  later.sort(compareMyActions);
+  [executiveAttention, criticalPath, goLiveGates, blocked, overdue, dueThisWeek, everythingElse]
+    .forEach((section) => section.sort(compareMyActions));
 
   return {
-    needsAttention,
+    executiveAttention,
+    criticalPath,
+    goLiveGates,
+    blocked,
+    overdue,
     dueThisWeek,
-    later,
+    everythingElse,
     counts: {
-      overdue: mine.filter((w) => isOverdue(w)).length,
-      dueThisWeek: dueThisWeek.length, // the group's own length, not a re-filter — guarantees it can't disagree with what's displayed
-      criticalPath: mine.filter((w) => w.criticalPath === true).length,
-      blocked: mine.filter(isBlocked).length,
+      overdue: overdue.length,
+      dueThisWeek: dueThisWeek.length,
+      criticalPath: criticalPath.length,
+      blocked: blocked.length,
     },
   };
 }
