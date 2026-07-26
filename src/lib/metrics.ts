@@ -57,6 +57,35 @@ export function isOverdue(w: WorkItem): boolean {
   return due < new Date(new Date().toDateString());
 }
 
+const UNASSIGNED_PHASE = "Unassigned";
+
+export interface PhaseMilestone extends GroupSummary {
+  phase: string;
+  phaseOrder: number;
+  gateItems: WorkItem[]; // go-live-gate items in this phase — the milestone markers
+}
+
+// Groups by phase, ordered by phase_order (not first-seen order — a roadmap
+// reads as a timeline, so the declared phase sequence matters more than
+// insertion order). Items with no phase collect under "Unassigned" last.
+export function computePhaseMilestones(items: WorkItem[]): PhaseMilestone[] {
+  const safeItems = Array.isArray(items) ? items : [];
+  const groups = new Map<string, { order: number; items: WorkItem[] }>();
+  for (const w of safeItems) {
+    const key = (w.phase ?? "").trim() || UNASSIGNED_PHASE;
+    if (!groups.has(key)) groups.set(key, { order: w.phaseOrder ?? Number.MAX_SAFE_INTEGER, items: [] });
+    groups.get(key)!.items.push(w);
+  }
+  return Array.from(groups.entries())
+    .map(([phase, g]) => ({
+      phase,
+      phaseOrder: g.order,
+      gateItems: g.items.filter((w) => w.goLiveGate === true),
+      ...summarize(g.items),
+    }))
+    .sort((a, b) => a.phaseOrder - b.phaseOrder);
+}
+
 export function computeDashboardMetrics(items: WorkItem[]): DashboardMetrics {
   const safeItems = Array.isArray(items) ? items : [];
 
