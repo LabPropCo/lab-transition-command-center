@@ -1,76 +1,59 @@
-/* Executive Dashboard — an executive briefing, not a grid of stat cards.
-   Uses existing design tokens only; no new palette. Typography and spacing
-   carry the hierarchy; color is a restrained, secondary signal only. */
+/* Leadership Brief — evidence supports decisions, evidence is not the
+   headline. Uses existing design tokens only; no new palette. Typography
+   and whitespace carry the hierarchy, not borders or color. */
 
 .dash__err { font-size: 13px; color: var(--terra); background: rgba(165,98,74,0.08); border: 1px solid rgba(165,98,74,0.25); border-radius: 6px; padding: 9px 12px; margin: 22px 0 0; }
 .dash__loading { margin-top: 22px; font-size: 13px; color: var(--muted); }
 
-/* ---------- Hero: one takeaway, sized to be read from across a room ----------
-   Everything else on the page is reference material for the meeting that
-   follows; this block alone is what the five-second glance remembers. */
+/* ---------- Hero: the one sentence leadership needs, nothing else ---------- */
 .dash__hero { margin-top: 8px; }
 .dash__eyebrow { font-family: var(--font-display); font-size: 20px; font-weight: 500; color: var(--soft); margin: 0; }
+.dash__focus { margin: 14px 0 0; max-width: 62ch; font-family: var(--font-display); font-size: 26px; font-weight: 500; line-height: 1.35; color: var(--ink); }
 
-.dash__headline { display: flex; align-items: baseline; gap: 80px; margin-top: 14px; }
-.dash__figure { display: flex; flex-direction: column; }
-.dash__figure-value { font-family: var(--font-display); font-weight: 500; font-size: 88px; line-height: 1; letter-spacing: -0.015em; color: var(--ink); }
-.dash__figure-label { margin-top: 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--gold); }
-
-/* ---------- Supporting detail — deliberately smaller than the hero above it,
-   so nothing here competes with the one thing the page is organized around. ---------- */
-.dash__stats { display: flex; flex-wrap: wrap; gap: 48px; margin-top: 72px; padding-top: 22px; border-top: 1px solid var(--line); }
-.dash__stat-value { font-family: var(--font-display); font-size: 22px; font-weight: 500; color: var(--ink); line-height: 1.1; }
-.dash__stat-label { margin-top: 5px; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
-
-/* ---------- Editorial content blocks ---------- */
-.dash__body { max-width: 960px; }
+/* ---------- Leadership content blocks ---------- */
+.dash__body { margin-top: 56px; max-width: 960px; }
 .dash__block { margin-top: 44px; }
+.dash__body > .dash__block:first-child { margin-top: 0; }
 .dash__block-title { font-family: var(--font-display); font-size: 17px; font-weight: 500; color: var(--ink); margin: 0 0 4px; }
 .dash__quiet { margin-top: 10px; font-size: 13.5px; color: var(--muted); }
 
-/* Needs attention / Recent progress side by side. The metrics above need to
-   feel finished before this section begins — a deliberate pause, not a
-   rule — and the two lists are told apart by their own tone (bold ink rows
-   vs. quiet running prose), not by competing heading colors. */
-.dash__pair { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; margin-top: 64px; }
-.dash__pair .dash__block { margin-top: 0; }
-
 .dash__list { list-style: none; margin: 14px 0 0; padding: 0; }
-.dash__row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; padding: 13px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.dash__row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 14px; padding: 13px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
 .dash__row:last-child { border-bottom: none; }
-.dash__row-code { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--soft); white-space: nowrap; }
-.dash__row-desc { flex: 1 1 auto; min-width: 60%; color: var(--ink); }
+.dash__row-desc { flex: 1 1 auto; min-width: 50%; color: var(--ink); }
 .dash__row-meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
 
-/* Recent progress: deliberately quieter than "Needs attention" — running
-   prose, not bolded row chips, so momentum reads as evidence, not urgency. */
-.dash__momentum-list { list-style: none; margin: 14px 0 0; padding: 0; }
-.dash__momentum-item { padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 13px; line-height: 1.5; color: var(--muted); }
-.dash__momentum-item:last-child { border-bottom: none; }
-.dash__momentum-desc { color: var(--soft); }
-.dash__momentum-date { color: var(--muted); }
+/* Leadership attention: a ranked exposure list, not a performance scoreboard —
+   only owners with a genuine concentration appear at all (see
+   computeOwnerExposure's minCount). The bar shows relative load, nothing more. */
+.dash__ownerlist { margin-top: 14px; display: flex; flex-direction: column; gap: 16px; }
+.dash__ownerrow { display: grid; grid-template-columns: 150px 1fr 80px; align-items: center; gap: 16px; }
+.dash__ownername { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.dash__ownertrack { height: 6px; border-radius: 999px; background: var(--panel); overflow: hidden; }
+.dash__ownerfill { height: 100%; background: var(--gold); border-radius: 999px; }
+.dash__ownercount { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; }
 
-/* Workstream detail — present but visually quieter than the sections above it. */
-.dash__block--quiet .dash__block-title { color: var(--soft); font-size: 15px; }
-.dash__wslist { margin-top: 12px; }
-.dash__wsrow { padding: 10px 0; border-bottom: 1px solid var(--line); }
+/* Workstreams not yet started — a short, filtered list, not the full
+   breakdown; only entries with real size are shown at all. */
+.dash__wslist { margin-top: 12px; display: flex; flex-direction: column; }
+.dash__wsrow { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
 .dash__wsrow:last-child { border-bottom: none; }
-.dash__wshead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 12.5px; color: var(--soft); margin-bottom: 6px; }
 .dash__wsname { font-weight: 600; color: var(--ink); }
-.dash__wscount { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
-.dash__wstrack { height: 5px; border-radius: 999px; background: var(--panel); overflow: hidden; }
-.dash__wsfill { height: 100%; background: var(--gold); border-radius: 999px; }
+.dash__wscount { color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+/* ---------- Supporting evidence — last, smallest, and quietest on the page.
+   It supports the brief above; it is not the brief. ---------- */
+.dash__stats { display: flex; flex-wrap: wrap; gap: 48px; margin-top: 72px; padding-top: 22px; border-top: 1px solid var(--line); }
+.dash__stat-value { font-family: var(--font-display); font-size: 22px; font-weight: 500; color: var(--ink); line-height: 1.1; }
+.dash__stat-label { margin-top: 5px; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
 
 .dash__empty { margin-top: 28px; border: 1px dashed var(--line); border-radius: var(--radius); background: var(--card); padding: 34px; display: flex; flex-direction: column; gap: 10px; }
 .dash__empty-head { font-family: var(--font-display); font-size: 18px; color: var(--ink); }
 .dash__empty-body { font-size: 13.5px; color: var(--soft); max-width: 62ch; line-height: 1.55; }
 
-@media (max-width: 860px) {
-  .dash__pair { grid-template-columns: 1fr; gap: 36px; }
-}
-
 @media (max-width: 640px) {
+  .dash__focus { font-size: 21px; }
   .dash__stats { gap: 24px; }
-  .dash__headline { gap: 40px; }
-  .dash__figure-value { font-size: 56px; }
+  .dash__ownerrow { grid-template-columns: 1fr; gap: 6px; }
+  .dash__ownercount { text-align: left; }
 }

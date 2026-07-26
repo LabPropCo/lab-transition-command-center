@@ -86,15 +86,56 @@ export function computePhaseMilestones(items: WorkItem[]): PhaseMilestone[] {
     .sort((a, b) => a.phaseOrder - b.phaseOrder);
 }
 
-// Highest-priority open items for an executive "needs attention" view: overdue
-// and on the critical path or a go-live gate. Sorted most-overdue first.
-// Non-mutating; tolerates missing/invalid due dates via isOverdue's own guard.
+// Highest-priority open items for a leadership "what's blocking progress" view:
+// overdue and on the critical path or a go-live gate. Ranked by operational
+// importance — items blocking both a gate and the critical path outrank
+// items blocking only one — with due date (most overdue first) as the
+// tiebreaker, not the primary sort. Non-mutating; tolerates missing/invalid
+// due dates via isOverdue's own guard.
 export function computePriorityItems(items: WorkItem[], limit = 5): WorkItem[] {
   const safeItems = Array.isArray(items) ? items : [];
+  const severity = (w: WorkItem) => (w.criticalPath ? 1 : 0) + (w.goLiveGate ? 1 : 0);
   return safeItems
     .filter((w) => isOverdue(w) && (w.criticalPath === true || w.goLiveGate === true))
     .slice()
-    .sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""))
+    .sort((a, b) => severity(b) - severity(a) || (a.dueDate ?? "").localeCompare(b.dueDate ?? ""))
+    .slice(0, limit);
+}
+
+export interface OwnerExposure {
+  owner: string;
+  overdueCount: number;
+}
+
+// Owners whose overdue load is a genuine pattern worth leadership attention —
+// not a leaderboard of everyone with an open item. `minCount` filters out
+// isolated one-offs; only owners at or above it are concentration, not noise.
+// Sorted highest exposure first, capped at `limit`. Items with no owner are
+// excluded — there's no one for leadership to check in with.
+export function computeOwnerExposure(items: WorkItem[], minCount = 2, limit = 5): OwnerExposure[] {
+  const safeItems = Array.isArray(items) ? items : [];
+  const counts = new Map<string, number>();
+  for (const w of safeItems) {
+    if (!isOverdue(w)) continue;
+    const owner = (w.owner ?? "").trim();
+    if (!owner) continue;
+    counts.set(owner, (counts.get(owner) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([owner, overdueCount]) => ({ owner, overdueCount }))
+    .filter((o) => o.overdueCount >= minCount)
+    .sort((a, b) => b.overdueCount - a.overdueCount)
+    .slice(0, limit);
+}
+
+// Workstreams with zero completion — real exposure, not every empty row.
+// `minTotal` keeps a two-item workstream from reading as equivalent to a
+// fifty-item one; both are "not started," but only one is actually a risk.
+export function computeStalledWorkstreams(workstreams: WorkstreamProgress[], minTotal = 5, limit = 4): WorkstreamProgress[] {
+  return workstreams
+    .filter((w) => w.percent === 0 && w.total >= minTotal)
+    .slice()
+    .sort((a, b) => b.total - a.total)
     .slice(0, limit);
 }
 

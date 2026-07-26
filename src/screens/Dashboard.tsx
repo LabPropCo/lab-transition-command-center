@@ -2,7 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useTransition } from "../transitions/TransitionProvider";
 import { listWorkItems } from "../work-items/api";
 import type { WorkItem } from "../work-items/types";
-import { computeDashboardMetrics, computePriorityItems, computeRecentProgress } from "../lib/metrics";
+import {
+  computeDashboardMetrics,
+  computePriorityItems,
+  computeRecentProgress,
+  computeOwnerExposure,
+  computeStalledWorkstreams,
+} from "../lib/metrics";
 import "../styles/dashboard.css";
 
 function daysUntil(iso: string | null): number | null {
@@ -21,14 +27,30 @@ function daysOverdue(iso: string): number {
   return Math.round((today.getTime() - due.getTime()) / 86_400_000);
 }
 
-// A self-contained figure + label, never a fragment: whatever the sign of
-// `d`, the pairing always reads as a complete statement on its own.
-function goLiveCountdown(d: number): { value: number; label: string } {
-  if (d > 0) return { value: d, label: d === 1 ? "Day until go-live" : "Days until go-live" };
-  if (d === 0) return { value: 0, label: "Go-live is today" };
-  const since = Math.abs(d);
-  return { value: since, label: since === 1 ? "Day since go-live" : "Days since go-live" };
+// Why a blocked item matters, from fields that already exist on it — never a
+// fabricated priority score.
+function stakes(w: WorkItem): string {
+  if (w.criticalPath && w.goLiveGate) return "Critical path · Go-live gate";
+  return w.criticalPath ? "Critical path" : "Go-live gate";
 }
+
+// Spells small integers for the one prose sentence on the page — numerals
+// stay in the rows and the supporting-evidence strip below.
+const ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+const TEENS = ["ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+const TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+function numberToWords(n: number): string {
+  if (n < 0 || !Number.isFinite(n)) return String(n);
+  if (n < 10) return ONES[n];
+  if (n < 20) return TEENS[n - 10];
+  if (n < 100) {
+    const tens = Math.floor(n / 10);
+    const ones = n % 10;
+    return TENS[tens] + (ones ? "-" + ONES[ones] : "");
+  }
+  return String(n); // beyond realistic scale for this app — fall back rather than guess
+}
+function cap(s: string): string { return s.charAt(0).toUpperCase() + s.slice(1); }
 
 export function Dashboard() {
   const { selected, propertyFilter } = useTransition();
@@ -57,31 +79,46 @@ export function Dashboard() {
   const metrics = useMemo(() => computeDashboardMetrics(scoped), [scoped]);
   const priorityItems = useMemo(() => computePriorityItems(scoped), [scoped]);
   const recentProgress = useMemo(() => computeRecentProgress(scoped), [scoped]);
+  const ownerExposure = useMemo(() => computeOwnerExposure(scoped), [scoped]);
+  const stalledWorkstreams = useMemo(() => computeStalledWorkstreams(metrics.workstreams), [metrics]);
 
   const goLiveDays = selected ? daysUntil(selected.targetGoLive) : null;
-  const countdown = goLiveDays !== null ? goLiveCountdown(goLiveDays) : null;
-  const readinessReady = !loading && !err && metrics.totalCount > 0;
+  const ready = !loading && !err && metrics.totalCount > 0;
+  const maxExposure = ownerExposure[0]?.overdueCount ?? 0;
+
+  // The one sentence leadership needs before the meeting. Picks the single
+  // most operationally significant true pattern already computed above —
+  // never a fixed template, never a judgment the data can't support.
+  const focus = useMemo(() => {
+    if (!ready) return null;
+    const topOwner = ownerExposure[0];
+    const secondOwner = ownerExposure[1];
+    if (topOwner) {
+      // Only name one owner when they clearly lead the pack — a 12-vs-10
+      // split is still concentration, but it's shared, not one person's.
+      const topIsDominant = !secondOwner || topOwner.overdueCount >= secondOwner.overdueCount * 1.5;
+      if (topIsDominant) {
+        return `${cap(numberToWords(topOwner.overdueCount))} overdue item${topOwner.overdueCount === 1 ? "" : "s"} ${topOwner.overdueCount === 1 ? "is" : "are"} concentrated with ${topOwner.owner}.`;
+      }
+      const combined = topOwner.overdueCount + secondOwner.overdueCount;
+      return `${cap(numberToWords(combined))} overdue items are concentrated with ${topOwner.owner} and ${secondOwner.owner}.`;
+    }
+    if (stalledWorkstreams.length > 0) {
+      const names = stalledWorkstreams.map((w) => w.workstream).join(" and ");
+      const runway = goLiveDays !== null && goLiveDays > 0 ? ` with ${goLiveDays} day${goLiveDays === 1 ? "" : "s"} remaining` : "";
+      return `${cap(numberToWords(stalledWorkstreams.length))} workstream${stalledWorkstreams.length === 1 ? "" : "s"} — ${names} — ${stalledWorkstreams.length === 1 ? "has" : "have"} not started${runway}.`;
+    }
+    if (metrics.overdueCount > 0) {
+      return `${cap(numberToWords(metrics.overdueCount))} item${metrics.overdueCount === 1 ? "" : "s"} ${metrics.overdueCount === 1 ? "is" : "are"} overdue across the critical path and go-live gates.`;
+    }
+    return `${metrics.readinessPercent}% complete${goLiveDays !== null && goLiveDays > 0 ? ` with ${goLiveDays} day${goLiveDays === 1 ? "" : "s"} remaining` : ""}.`;
+  }, [ready, ownerExposure, stalledWorkstreams, metrics, goLiveDays]);
 
   return (
     <section className="screen dash">
       <div className="dash__hero">
-        <p className="dash__eyebrow">{selected?.name ?? "Dashboard"}</p>
-        {(countdown || readinessReady) && (
-          <div className="dash__headline">
-            {countdown && (
-              <div className="dash__figure">
-                <div className="dash__figure-value">{countdown.value}</div>
-                <div className="dash__figure-label">{countdown.label}</div>
-              </div>
-            )}
-            {readinessReady && (
-              <div className="dash__figure">
-                <div className="dash__figure-value">{metrics.readinessPercent}%</div>
-                <div className="dash__figure-label">Complete</div>
-              </div>
-            )}
-          </div>
-        )}
+        <p className="dash__eyebrow">{selected?.name ?? "Leadership Brief"}</p>
+        {focus && <p className="dash__focus">{focus}</p>}
       </div>
 
       {err && <p className="dash__err">{err}</p>}
@@ -93,14 +130,70 @@ export function Dashboard() {
           <p className="dash__empty-body">
             {selected
               ? "This transition hasn't been provisioned with work items yet, or none match the current property filter."
-              : "Select a transition to see its dashboard."}
+              : "Select a transition to see its brief."}
           </p>
         </div>
       )}
 
-      {!loading && !err && metrics.totalCount > 0 && (
+      {ready && (
         <div className="dash__body">
+          <section className="dash__block">
+            <h2 className="dash__block-title">Decisions blocking progress</h2>
+            {priorityItems.length === 0 ? (
+              <p className="dash__quiet">Nothing overdue on the critical path or a go-live gate.</p>
+            ) : (
+              <ol className="dash__list">
+                {priorityItems.map((w) => {
+                  const overdue = w.dueDate ? daysOverdue(w.dueDate) : null;
+                  return (
+                    <li className="dash__row" key={w.id}>
+                      <span className="dash__row-desc">{w.description}</span>
+                      <span className="dash__row-meta">
+                        {stakes(w)} · {w.owner ?? "Unassigned"} · {overdue !== null ? `${overdue} day${overdue === 1 ? "" : "s"} overdue` : "overdue"}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </section>
+
+          {ownerExposure.length > 0 && (
+            <section className="dash__block">
+              <h2 className="dash__block-title">Leadership attention</h2>
+              <div className="dash__ownerlist">
+                {ownerExposure.map((o) => (
+                  <div className="dash__ownerrow" key={o.owner}>
+                    <span className="dash__ownername">{o.owner}</span>
+                    <div className="dash__ownertrack">
+                      <div className="dash__ownerfill" style={{ width: `${(o.overdueCount / maxExposure) * 100}%` }} />
+                    </div>
+                    <span className="dash__ownercount">{o.overdueCount} overdue</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {stalledWorkstreams.length > 0 && (
+            <section className="dash__block">
+              <h2 className="dash__block-title">Workstreams not yet started</h2>
+              <div className="dash__wslist">
+                {stalledWorkstreams.map((w) => (
+                  <div className="dash__wsrow" key={w.workstream}>
+                    <span className="dash__wsname">{w.workstream}</span>
+                    <span className="dash__wscount">{w.total} items</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           <div className="dash__stats">
+            <div className="dash__stat">
+              <div className="dash__stat-value">{metrics.readinessPercent}%</div>
+              <div className="dash__stat-label">Complete</div>
+            </div>
             <div className="dash__stat">
               <div className="dash__stat-value">{metrics.goLiveGate.completed}/{metrics.goLiveGate.total}</div>
               <div className="dash__stat-label">Go-live gates</div>
@@ -109,70 +202,19 @@ export function Dashboard() {
               <div className="dash__stat-value">{metrics.criticalPath.completed}/{metrics.criticalPath.total}</div>
               <div className="dash__stat-label">Critical path</div>
             </div>
-            <div className="dash__stat">
-              <div className="dash__stat-value">{metrics.overdueCount}</div>
-              <div className="dash__stat-label">Overdue</div>
-            </div>
+            {goLiveDays !== null && (
+              <div className="dash__stat">
+                <div className="dash__stat-value">{Math.max(goLiveDays, 0)}</div>
+                <div className="dash__stat-label">Days remaining</div>
+              </div>
+            )}
+            {recentProgress.count > 0 && (
+              <div className="dash__stat">
+                <div className="dash__stat-value">{recentProgress.count}</div>
+                <div className="dash__stat-label">Momentum</div>
+              </div>
+            )}
           </div>
-
-          <div className="dash__pair">
-            <section className="dash__block">
-              <h2 className="dash__block-title">Needs attention</h2>
-              {priorityItems.length === 0 ? (
-                <p className="dash__quiet">Nothing overdue on the critical path or a go-live gate.</p>
-              ) : (
-                <ol className="dash__list">
-                  {priorityItems.map((w) => {
-                    const overdue = w.dueDate ? daysOverdue(w.dueDate) : null;
-                    return (
-                      <li className="dash__row" key={w.id}>
-                        <span className="dash__row-code">{w.code}</span>
-                        <span className="dash__row-desc">{w.description}</span>
-                        <span className="dash__row-meta">
-                          {w.owner && <>{w.owner} · </>}
-                          {overdue !== null ? `${overdue} day${overdue === 1 ? "" : "s"} overdue` : "overdue"}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ol>
-              )}
-            </section>
-
-            <section className="dash__block">
-              <h2 className="dash__block-title">Recent progress</h2>
-              {recentProgress.items.length === 0 ? (
-                <p className="dash__quiet">Nothing completed in the last two weeks.</p>
-              ) : (
-                <ol className="dash__momentum-list">
-                  {recentProgress.items.map((w) => (
-                    <li className="dash__momentum-item" key={w.id}>
-                      {w.owner ? <>{w.owner} completed </> : "Completed "}
-                      <span className="dash__momentum-desc">{w.description}</span>
-                      {w.completedAt && <span className="dash__momentum-date"> · {w.completedAt.slice(0, 10)}</span>}
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </section>
-          </div>
-
-          <section className="dash__block dash__block--quiet">
-            <h2 className="dash__block-title">Workstream detail</h2>
-            <div className="dash__wslist">
-              {metrics.workstreams.map((w) => (
-                <div className="dash__wsrow" key={w.workstream}>
-                  <div className="dash__wshead">
-                    <span className="dash__wsname">{w.workstream}</span>
-                    <span className="dash__wscount">{w.completed} / {w.total} · {w.percent}%</span>
-                  </div>
-                  <div className="dash__wstrack">
-                    <div className="dash__wsfill" style={{ width: `${w.percent}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
         </div>
       )}
     </section>
