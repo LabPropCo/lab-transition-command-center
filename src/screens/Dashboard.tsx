@@ -5,7 +5,6 @@ import type { WorkItem } from "../work-items/types";
 import {
   computeDashboardMetrics,
   computePriorityItems,
-  computeRecentProgress,
   computeOwnerExposure,
   computeStalledWorkstreams,
 } from "../lib/metrics";
@@ -25,6 +24,15 @@ function daysOverdue(iso: string): number {
   const due = new Date(iso + "T00:00:00");
   const today = new Date(new Date().toDateString());
   return Math.round((today.getTime() - due.getTime()) / 86_400_000);
+}
+
+// A self-contained figure + label, never a fragment: whatever the sign of
+// `d`, the pairing always reads as a complete statement on its own.
+function goLiveCountdown(d: number): { value: number; label: string } {
+  if (d > 0) return { value: d, label: d === 1 ? "Day remaining" : "Days remaining" };
+  if (d === 0) return { value: 0, label: "Transition is today" };
+  const since = Math.abs(d);
+  return { value: since, label: since === 1 ? "Day since transition" : "Days since transition" };
 }
 
 // Why a blocked item matters, from fields that already exist on it — never a
@@ -78,11 +86,11 @@ export function Dashboard() {
 
   const metrics = useMemo(() => computeDashboardMetrics(scoped), [scoped]);
   const priorityItems = useMemo(() => computePriorityItems(scoped), [scoped]);
-  const recentProgress = useMemo(() => computeRecentProgress(scoped), [scoped]);
   const ownerExposure = useMemo(() => computeOwnerExposure(scoped), [scoped]);
   const stalledWorkstreams = useMemo(() => computeStalledWorkstreams(metrics.workstreams), [metrics]);
 
   const goLiveDays = selected ? daysUntil(selected.targetGoLive) : null;
+  const countdown = goLiveDays !== null ? goLiveCountdown(goLiveDays) : null;
   const ready = !loading && !err && metrics.totalCount > 0;
   const maxExposure = ownerExposure[0]?.overdueCount ?? 0;
 
@@ -117,7 +125,15 @@ export function Dashboard() {
   return (
     <section className="screen dash">
       <div className="dash__hero">
-        <p className="dash__eyebrow">{selected?.name ?? "Leadership Brief"}</p>
+        <div className="dash__header">
+          <p className="dash__eyebrow">{selected?.name ?? "Leadership Brief"}</p>
+          {countdown && (
+            <div className="dash__countdown">
+              <span className="dash__countdown-value">{countdown.value}</span>
+              <span className="dash__countdown-label">{countdown.label}</span>
+            </div>
+          )}
+        </div>
         {focus && <p className="dash__focus">{focus}</p>}
       </div>
 
@@ -160,7 +176,7 @@ export function Dashboard() {
 
           {ownerExposure.length > 0 && (
             <section className="dash__block">
-              <h2 className="dash__block-title">Leadership attention</h2>
+              <h2 className="dash__block-title">Where help is needed</h2>
               <div className="dash__ownerlist">
                 {ownerExposure.map((o) => (
                   <div className="dash__ownerrow" key={o.owner}>
@@ -175,25 +191,7 @@ export function Dashboard() {
             </section>
           )}
 
-          {stalledWorkstreams.length > 0 && (
-            <section className="dash__block">
-              <h2 className="dash__block-title">Workstreams not yet started</h2>
-              <div className="dash__wslist">
-                {stalledWorkstreams.map((w) => (
-                  <div className="dash__wsrow" key={w.workstream}>
-                    <span className="dash__wsname">{w.workstream}</span>
-                    <span className="dash__wscount">{w.total} items</span>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
           <div className="dash__stats">
-            <div className="dash__stat">
-              <div className="dash__stat-value">{metrics.readinessPercent}%</div>
-              <div className="dash__stat-label">Complete</div>
-            </div>
             <div className="dash__stat">
               <div className="dash__stat-value">{metrics.goLiveGate.completed}/{metrics.goLiveGate.total}</div>
               <div className="dash__stat-label">Go-live gates</div>
@@ -202,18 +200,10 @@ export function Dashboard() {
               <div className="dash__stat-value">{metrics.criticalPath.completed}/{metrics.criticalPath.total}</div>
               <div className="dash__stat-label">Critical path</div>
             </div>
-            {goLiveDays !== null && (
-              <div className="dash__stat">
-                <div className="dash__stat-value">{Math.max(goLiveDays, 0)}</div>
-                <div className="dash__stat-label">Days remaining</div>
-              </div>
-            )}
-            {recentProgress.count > 0 && (
-              <div className="dash__stat">
-                <div className="dash__stat-value">{recentProgress.count}</div>
-                <div className="dash__stat-label">Momentum</div>
-              </div>
-            )}
+            <div className="dash__stat">
+              <div className="dash__stat-value">{metrics.readinessPercent}%</div>
+              <div className="dash__stat-label">Complete</div>
+            </div>
           </div>
         </div>
       )}

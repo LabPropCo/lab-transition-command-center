@@ -139,30 +139,6 @@ export function computeStalledWorkstreams(workstreams: WorkstreamProgress[], min
     .slice(0, limit);
 }
 
-export interface RecentProgress {
-  count: number;       // true total, uncapped — the fact to state in prose
-  items: WorkItem[];   // capped to `limit`, most-recent first — the fact to list
-}
-
-// Recently completed items, for an executive "recent progress" view — the
-// honest substitute for a trend line, since no historical/time-series data
-// exists in this schema. `count` is the real total (never capped) so a
-// narrative sentence never under-reports; `items` is capped for display.
-export function computeRecentProgress(items: WorkItem[], days = 14, limit = 5): RecentProgress {
-  const safeItems = Array.isArray(items) ? items : [];
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - days);
-  const matches = safeItems
-    .filter((w) => {
-      if (!w.completedAt) return false;
-      const d = new Date(w.completedAt);
-      return !Number.isNaN(d.getTime()) && d >= cutoff;
-    })
-    .slice()
-    .sort((a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? ""));
-  return { count: matches.length, items: matches.slice(0, limit) };
-}
-
 export function computeDashboardMetrics(items: WorkItem[]): DashboardMetrics {
   const safeItems = Array.isArray(items) ? items : [];
 
