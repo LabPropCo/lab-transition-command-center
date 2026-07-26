@@ -7,8 +7,8 @@ import {
   computePriorityItems,
   computeOwnerExposure,
   computeStalledWorkstreams,
-  computeTransitionStatus,
 } from "../lib/metrics";
+import { generateExecutiveAssessment } from "../lib/executiveAssessment";
 import "../styles/dashboard.css";
 
 function daysUntil(iso: string | null): number | null {
@@ -42,24 +42,6 @@ function stakes(w: WorkItem): string {
   if (w.criticalPath && w.goLiveGate) return "Critical path · Go-live gate";
   return w.criticalPath ? "Critical path" : "Go-live gate";
 }
-
-// Spells small integers for the one prose sentence on the page — numerals
-// stay in the rows and the supporting-evidence strip below.
-const ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
-const TEENS = ["ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
-const TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
-function numberToWords(n: number): string {
-  if (n < 0 || !Number.isFinite(n)) return String(n);
-  if (n < 10) return ONES[n];
-  if (n < 20) return TEENS[n - 10];
-  if (n < 100) {
-    const tens = Math.floor(n / 10);
-    const ones = n % 10;
-    return TENS[tens] + (ones ? "-" + ONES[ones] : "");
-  }
-  return String(n); // beyond realistic scale for this app — fall back rather than guess
-}
-function cap(s: string): string { return s.charAt(0).toUpperCase() + s.slice(1); }
 
 export function Dashboard() {
   const { selected, propertyFilter } = useTransition();
@@ -95,57 +77,15 @@ export function Dashboard() {
   const ready = !loading && !err && metrics.totalCount > 0;
   const maxExposure = ownerExposure[0]?.overdueCount ?? 0;
 
-  // The one sentence leadership needs before the meeting. Picks the single
-  // most operationally significant true pattern already computed above —
-  // never a fixed template, never a judgment the data can't support.
-  const focus = useMemo(() => {
-    if (!ready) return null;
-    const topOwner = ownerExposure[0];
-    const secondOwner = ownerExposure[1];
-    if (topOwner) {
-      // Only name one owner when they clearly lead the pack — a 12-vs-10
-      // split is still concentration, but it's shared, not one person's.
-      const topIsDominant = !secondOwner || topOwner.overdueCount >= secondOwner.overdueCount * 1.5;
-      if (topIsDominant) {
-        return `${cap(numberToWords(topOwner.overdueCount))} overdue item${topOwner.overdueCount === 1 ? "" : "s"} ${topOwner.overdueCount === 1 ? "is" : "are"} concentrated with ${topOwner.owner}.`;
-      }
-      const combined = topOwner.overdueCount + secondOwner.overdueCount;
-      return `${cap(numberToWords(combined))} overdue items are concentrated with ${topOwner.owner} and ${secondOwner.owner}.`;
-    }
-    if (stalledWorkstreams.length > 0) {
-      const names = stalledWorkstreams.map((w) => w.workstream).join(" and ");
-      const runway = goLiveDays !== null && goLiveDays > 0 ? ` with ${goLiveDays} day${goLiveDays === 1 ? "" : "s"} remaining` : "";
-      return `${cap(numberToWords(stalledWorkstreams.length))} workstream${stalledWorkstreams.length === 1 ? "" : "s"} — ${names} — ${stalledWorkstreams.length === 1 ? "has" : "have"} not started${runway}.`;
-    }
-    if (metrics.overdueCount > 0) {
-      return `${cap(numberToWords(metrics.overdueCount))} item${metrics.overdueCount === 1 ? "" : "s"} ${metrics.overdueCount === 1 ? "is" : "are"} overdue across the critical path and go-live gates.`;
-    }
-    return `${metrics.readinessPercent}% complete${goLiveDays !== null && goLiveDays > 0 ? ` with ${goLiveDays} day${goLiveDays === 1 ? "" : "s"} remaining` : ""}.`;
-  }, [ready, ownerExposure, stalledWorkstreams, metrics, goLiveDays]);
-
-  const status = useMemo(
-    () => (ready ? computeTransitionStatus(scoped, metrics, ownerExposure, goLiveDays) : null),
-    [ready, scoped, metrics, ownerExposure, goLiveDays],
+  // The Dashboard's only job here is to render what the assessment engine
+  // produces — the status derivation and narrative composition live in
+  // executiveAssessment.ts, decoupled from this screen so the same engine
+  // can eventually power a Portfolio Dashboard, a Property Dashboard, and
+  // weekly executive reports.
+  const assessment = useMemo(
+    () => (ready ? generateExecutiveAssessment({ items: scoped, metrics, ownerExposure, stalledWorkstreams, goLiveDays }) : null),
+    [ready, scoped, metrics, ownerExposure, stalledWorkstreams, goLiveDays],
   );
-
-  // The executive assessment's explanation: a level-specific factual lead-in,
-  // then the same governing statement used above — reused, not re-derived,
-  // so the two never contradict each other. On Track is a complete thought
-  // on its own; the other three levels lean on `focus` for the "why."
-  const assessment = useMemo(() => {
-    if (!status) return null;
-    const b = status.blockingOverdueCount;
-    switch (status.level) {
-      case "On Track":
-        return "All go-live gates remain on schedule. No critical-path items are currently overdue.";
-      case "Critical":
-        return `The current transition is unlikely to achieve the scheduled go-live date without executive intervention.${focus ? ` ${focus}` : ""}`;
-      default: {
-        const lead = `${cap(numberToWords(b))} critical-path or go-live-gate item${b === 1 ? "" : "s"} ${b === 1 ? "is" : "are"} overdue.`;
-        return focus ? `${lead} ${focus}` : lead;
-      }
-    }
-  }, [status, focus]);
 
   return (
     <section className="screen dash">
@@ -175,11 +115,11 @@ export function Dashboard() {
           </div>
         )}
 
-        {status && assessment && (
+        {assessment && (
           <div className="dash__assessment">
-            <h2 className="dash__assessment-label">Transition status</h2>
-            <div className="dash__assessment-level">{status.level}</div>
-            <p className="dash__assessment-text">{assessment}</p>
+            <h2 className="dash__assessment-label">Executive assessment</h2>
+            <div className="dash__assessment-level">{assessment.status}</div>
+            <p className="dash__assessment-text">{assessment.narrative}</p>
           </div>
         )}
       </div>
