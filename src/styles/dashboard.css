@@ -6,7 +6,7 @@
 .dash__loading { margin-top: 22px; font-size: 13px; color: var(--muted); }
 
 /* ---------- Hero: the executive summary ---------- */
-.dash__hero { margin-top: 8px; max-width: 62ch; }
+.dash__hero { margin-top: 8px; max-width: 68ch; }
 .dash__eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 .dash__status { font-family: var(--font-display); font-weight: 500; font-size: 52px; line-height: 1.05; letter-spacing: -0.01em; color: var(--ink); margin: 10px 0 0; }
 .dash__status--good { color: var(--gold); }
@@ -16,21 +16,28 @@
 .dash__narrative { margin: 18px 0 0; font-size: 15px; line-height: 1.65; color: var(--soft); }
 
 /* ---------- Quiet stat strip (not boxed tiles) ---------- */
-.dash__stats { display: flex; flex-wrap: wrap; gap: 36px; margin-top: 40px; padding-top: 22px; border-top: 1px solid var(--line); }
-.dash__stat-value { font-family: var(--font-display); font-size: 26px; font-weight: 500; color: var(--ink); line-height: 1.1; }
-.dash__stat-label { margin-top: 4px; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.dash__stats { display: flex; flex-wrap: wrap; gap: 56px; margin-top: 40px; padding-top: 22px; border-top: 1px solid var(--line); }
+.dash__stat-value { font-family: var(--font-display); font-size: 30px; font-weight: 500; color: var(--ink); line-height: 1.1; }
+.dash__stat-label { margin-top: 5px; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
 
 /* ---------- Editorial content blocks ---------- */
-.dash__body { max-width: 74ch; }
+.dash__body { max-width: 960px; }
 .dash__block { margin-top: 44px; }
 .dash__block-title { font-family: var(--font-display); font-size: 17px; font-weight: 500; color: var(--ink); margin: 0 0 4px; }
+.dash__block-title--attention { color: var(--terra); }
+.dash__block-title--progress { color: var(--gold); }
 .dash__quiet { margin-top: 10px; font-size: 13.5px; color: var(--muted); }
 
+/* Needs attention / Recent progress side by side — uses the wider canvas and
+   separates "problems" from "wins" spatially before a word is even read. */
+.dash__pair { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; }
+.dash__pair .dash__block { margin-top: 0; }
+
 .dash__list { list-style: none; margin: 14px 0 0; padding: 0; }
-.dash__row { display: flex; align-items: baseline; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.dash__row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; padding: 13px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
 .dash__row:last-child { border-bottom: none; }
 .dash__row-code { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--soft); white-space: nowrap; }
-.dash__row-desc { flex: 1; color: var(--ink); }
+.dash__row-desc { flex: 1 1 auto; min-width: 60%; color: var(--ink); }
 .dash__row-meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
 
 /* Workstream detail — present but visually quieter than the sections above it. */
@@ -47,6 +54,10 @@
 .dash__empty { margin-top: 28px; border: 1px dashed var(--line); border-radius: var(--radius); background: var(--card); padding: 34px; display: flex; flex-direction: column; gap: 10px; }
 .dash__empty-head { font-family: var(--font-display); font-size: 18px; color: var(--ink); }
 .dash__empty-body { font-size: 13.5px; color: var(--soft); max-width: 62ch; line-height: 1.55; }
+
+@media (max-width: 860px) {
+  .dash__pair { grid-template-columns: 1fr; gap: 36px; }
+}
 
 @media (max-width: 640px) {
   .dash__status { font-size: 38px; }

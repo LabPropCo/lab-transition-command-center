@@ -118,39 +118,41 @@ export function Dashboard() {
             </div>
           </div>
 
-          <section className="dash__block">
-            <h2 className="dash__block-title">Needs attention</h2>
-            {priorityItems.length === 0 ? (
-              <p className="dash__quiet">Nothing overdue on the critical path or a go-live gate.</p>
-            ) : (
-              <ol className="dash__list">
-                {priorityItems.map((w) => (
-                  <li className="dash__row" key={w.id}>
-                    <span className="dash__row-code">{w.code}</span>
-                    <span className="dash__row-desc">{w.description}</span>
-                    <span className="dash__row-meta">{w.dueDate} · overdue</span>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </section>
+          <div className="dash__pair">
+            <section className="dash__block">
+              <h2 className="dash__block-title dash__block-title--attention">Needs attention</h2>
+              {priorityItems.length === 0 ? (
+                <p className="dash__quiet">Nothing overdue on the critical path or a go-live gate.</p>
+              ) : (
+                <ol className="dash__list">
+                  {priorityItems.map((w) => (
+                    <li className="dash__row" key={w.id}>
+                      <span className="dash__row-code">{w.code}</span>
+                      <span className="dash__row-desc">{w.description}</span>
+                      <span className="dash__row-meta">{w.dueDate} · overdue</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </section>
 
-          <section className="dash__block">
-            <h2 className="dash__block-title">Recent progress</h2>
-            {recentProgress.length === 0 ? (
-              <p className="dash__quiet">Nothing completed in the last two weeks.</p>
-            ) : (
-              <ol className="dash__list">
-                {recentProgress.map((w) => (
-                  <li className="dash__row" key={w.id}>
-                    <span className="dash__row-code">{w.code}</span>
-                    <span className="dash__row-desc">{w.description}</span>
-                    <span className="dash__row-meta">{w.completedAt?.slice(0, 10)}</span>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </section>
+            <section className="dash__block">
+              <h2 className="dash__block-title dash__block-title--progress">Recent progress</h2>
+              {recentProgress.length === 0 ? (
+                <p className="dash__quiet">Nothing completed in the last two weeks.</p>
+              ) : (
+                <ol className="dash__list">
+                  {recentProgress.map((w) => (
+                    <li className="dash__row" key={w.id}>
+                      <span className="dash__row-code">{w.code}</span>
+                      <span className="dash__row-desc">{w.description}</span>
+                      <span className="dash__row-meta">{w.completedAt?.slice(0, 10)}</span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </section>
+          </div>
 
           <section className="dash__block dash__block--quiet">
             <h2 className="dash__block-title">Workstream detail</h2>
