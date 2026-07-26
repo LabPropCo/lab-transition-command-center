@@ -5,23 +5,21 @@
 .dash__err { font-size: 13px; color: var(--terra); background: rgba(165,98,74,0.08); border: 1px solid rgba(165,98,74,0.25); border-radius: 6px; padding: 9px 12px; margin: 22px 0 0; }
 .dash__loading { margin-top: 22px; font-size: 13px; color: var(--muted); }
 
-/* ---------- Hero: one composition, not a title plus a widget ---------- */
-.dash__hero { margin-top: 8px; max-width: 860px; }
-.dash__herotop { display: flex; align-items: baseline; gap: 64px; }
-.dash__title { font-family: var(--font-display); font-weight: 500; font-size: 40px; line-height: 1.1; letter-spacing: -0.01em; color: var(--ink); margin: 0; }
+/* ---------- Hero: one takeaway, sized to be read from across a room ----------
+   Everything else on the page is reference material for the meeting that
+   follows; this block alone is what the five-second glance remembers. */
+.dash__hero { margin-top: 8px; }
+.dash__eyebrow { font-family: var(--font-display); font-size: 20px; font-weight: 500; color: var(--soft); margin: 0; }
 
-/* The countdown reads as part of the same statement as the title, not a
-   separate widget: same baseline, a fixed close gap, deliberately the
-   largest number on screen, but plain ink — no judgment color. */
-.dash__countdown { flex: 0 0 auto; display: flex; align-items: baseline; gap: 10px; }
-.dash__countdown-value { font-family: var(--font-display); font-weight: 500; font-size: 56px; line-height: 1; color: var(--ink); }
-.dash__countdown-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); max-width: 9ch; }
+.dash__headline { display: flex; align-items: baseline; gap: 80px; margin-top: 14px; }
+.dash__figure { display: flex; flex-direction: column; }
+.dash__figure-value { font-family: var(--font-display); font-weight: 500; font-size: 88px; line-height: 1; letter-spacing: -0.015em; color: var(--ink); }
+.dash__figure-label { margin-top: 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--gold); }
 
-.dash__narrative { margin: 22px 0 0; max-width: 68ch; font-size: 15px; line-height: 1.65; color: var(--soft); }
-
-/* ---------- Quiet stat strip (not boxed tiles) ---------- */
-.dash__stats { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 32px 56px; margin-top: 48px; padding-top: 22px; border-top: 1px solid var(--line); }
-.dash__stat-value { font-family: var(--font-display); font-size: 30px; font-weight: 500; color: var(--ink); line-height: 1.1; }
+/* ---------- Supporting detail — deliberately smaller than the hero above it,
+   so nothing here competes with the one thing the page is organized around. ---------- */
+.dash__stats { display: flex; flex-wrap: wrap; gap: 48px; margin-top: 72px; padding-top: 22px; border-top: 1px solid var(--line); }
+.dash__stat-value { font-family: var(--font-display); font-size: 22px; font-weight: 500; color: var(--ink); line-height: 1.1; }
 .dash__stat-label { margin-top: 5px; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
 
 /* ---------- Editorial content blocks ---------- */
@@ -72,8 +70,7 @@
 }
 
 @media (max-width: 640px) {
-  .dash__title { font-size: 30px; }
   .dash__stats { gap: 24px; }
-  .dash__herotop { flex-direction: column; align-items: flex-start; gap: 18px; }
-  .dash__countdown-value { font-size: 42px; }
+  .dash__headline { gap: 40px; }
+  .dash__figure-value { font-size: 56px; }
 }

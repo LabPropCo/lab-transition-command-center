@@ -30,29 +30,6 @@ function goLiveCountdown(d: number): { value: number; label: string } {
   return { value: since, label: since === 1 ? "Day since go-live" : "Days since go-live" };
 }
 
-// Spells out small integers for prose sentences (an executive briefing reads
-// as written, not tabulated — numerals stay in the stat strip and lists).
-const ONES = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
-const TEENS = ["ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
-const TENS = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
-function numberToWords(n: number): string {
-  if (n < 0 || !Number.isFinite(n)) return String(n);
-  if (n < 10) return ONES[n];
-  if (n < 20) return TEENS[n - 10];
-  if (n < 100) {
-    const tens = Math.floor(n / 10);
-    const ones = n % 10;
-    return TENS[tens] + (ones ? "-" + ONES[ones] : "");
-  }
-  if (n < 1000) {
-    const hundreds = Math.floor(n / 100);
-    const rest = n % 100;
-    return ONES[hundreds] + " hundred" + (rest ? " " + numberToWords(rest) : "");
-  }
-  return String(n); // beyond realistic scale for this app — fall back rather than guess
-}
-function cap(s: string): string { return s.charAt(0).toUpperCase() + s.slice(1); }
-
 export function Dashboard() {
   const { selected, propertyFilter } = useTransition();
   const [items, setItems] = useState<WorkItem[]>([]);
@@ -83,40 +60,28 @@ export function Dashboard() {
 
   const goLiveDays = selected ? daysUntil(selected.targetGoLive) : null;
   const countdown = goLiveDays !== null ? goLiveCountdown(goLiveDays) : null;
-
-  // An interpretive, evidence-only briefing — at most two sentences, each
-  // relating facts rather than re-reading a numeral already on screen in the
-  // stat strip below. No status word, no judgment.
-  const narrative = useMemo(() => {
-    if (!selected || metrics.totalCount === 0) return null;
-    const sentences: string[] = [];
-    sentences.push(
-      goLiveDays !== null && goLiveDays > 0
-        ? `${metrics.readinessPercent}% of work is complete with ${goLiveDays} day${goLiveDays === 1 ? "" : "s"} remaining until go-live.`
-        : `${metrics.readinessPercent}% of work items are complete.`,
-    );
-    sentences.push(
-      recentProgress.count > 0
-        ? `${cap(numberToWords(recentProgress.count))} work item${recentProgress.count === 1 ? "" : "s"} ${recentProgress.count === 1 ? "has" : "have"} been completed in the past two weeks.`
-        : "No work items have been completed in the past two weeks.",
-    );
-    return sentences.join(" ");
-  }, [selected, metrics, recentProgress, countdown, goLiveDays]);
+  const readinessReady = !loading && !err && metrics.totalCount > 0;
 
   return (
     <section className="screen dash">
       <div className="dash__hero">
-        <div className="dash__herotop">
-          <h1 className="dash__title">{selected?.name ?? "Dashboard"}</h1>
-          {countdown && (
-            <div className="dash__countdown">
-              <div className="dash__countdown-value">{countdown.value}</div>
-              <div className="dash__countdown-label">{countdown.label}</div>
-            </div>
-          )}
-        </div>
-
-        {narrative && <p className="dash__narrative">{narrative}</p>}
+        <p className="dash__eyebrow">{selected?.name ?? "Dashboard"}</p>
+        {(countdown || readinessReady) && (
+          <div className="dash__headline">
+            {countdown && (
+              <div className="dash__figure">
+                <div className="dash__figure-value">{countdown.value}</div>
+                <div className="dash__figure-label">{countdown.label}</div>
+              </div>
+            )}
+            {readinessReady && (
+              <div className="dash__figure">
+                <div className="dash__figure-value">{metrics.readinessPercent}%</div>
+                <div className="dash__figure-label">Complete</div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {err && <p className="dash__err">{err}</p>}
@@ -136,10 +101,6 @@ export function Dashboard() {
       {!loading && !err && metrics.totalCount > 0 && (
         <div className="dash__body">
           <div className="dash__stats">
-            <div className="dash__stat">
-              <div className="dash__stat-value">{metrics.readinessPercent}%</div>
-              <div className="dash__stat-label">Work items complete</div>
-            </div>
             <div className="dash__stat">
               <div className="dash__stat-value">{metrics.goLiveGate.completed}/{metrics.goLiveGate.total}</div>
               <div className="dash__stat-label">Go-live gates</div>
