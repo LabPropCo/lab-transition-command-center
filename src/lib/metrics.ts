@@ -139,6 +139,143 @@ export function computeStalledWorkstreams(workstreams: WorkstreamProgress[], min
     .slice(0, limit);
 }
 
+// ---------------------------------------------------------------------------
+// My Actions — a personal view of Master Work Items, not a parallel task
+// system. Every function here reads existing fields only (owner, status,
+// due_date, critical_path, go_live_gate); nothing is stored or invented.
+// ---------------------------------------------------------------------------
+
+// "Active" mirrors the definition already used everywhere else in this app
+// (isOverdue's own exclusion, the Dashboard's supporting-evidence stats):
+// everything except Complete and Not Applicable.
+export function isActiveStatus(w: WorkItem): boolean {
+  return w.status !== "Complete" && w.status !== "Not Applicable";
+}
+
+export function isBlocked(w: WorkItem): boolean {
+  return w.status === "Blocked";
+}
+
+// Case-insensitive, whitespace-trimmed match against the owner text field —
+// the only linkage that exists between an authenticated user and a work
+// item today (see src/work-items/api.ts getCurrentUserDisplayName). An
+// empty owner or empty display name never matches anything.
+export function isAssignedTo(w: WorkItem, displayName: string): boolean {
+  const owner = (w.owner ?? "").trim().toLowerCase();
+  const me = displayName.trim().toLowerCase();
+  return owner.length > 0 && me.length > 0 && owner === me;
+}
+
+// Days a due date has been in the past. Only meaningful for items isOverdue()
+// has already confirmed are actually overdue.
+function daysPastDue(dueDate: string): number {
+  const due = new Date(dueDate + "T00:00:00");
+  const today = new Date(new Date().toDateString());
+  return Math.round((today.getTime() - due.getTime()) / 86_400_000);
+}
+
+// The end of "this week," defined as the coming Sunday (a Monday-through-
+// Sunday week) — if `today` already is Sunday, the week ends today. This is
+// the one place that definition lives; change it here only.
+function endOfWeek(today: Date): Date {
+  const d = new Date(today);
+  d.setDate(d.getDate() + ((7 - d.getDay()) % 7));
+  return d;
+}
+
+function isDueThisWeek(w: WorkItem, today: Date, weekEnd: Date): boolean {
+  if (!w.dueDate) return false;
+  const due = new Date(w.dueDate + "T00:00:00");
+  if (Number.isNaN(due.getTime())) return false;
+  return due >= today && due <= weekEnd;
+}
+
+const MY_ACTIONS_PRIORITY_RANK: Record<string, number> = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+
+// The documented sort for every group on My Actions, applied as a strict
+// tie-breaking chain — each tier only decides ties left by the one before
+// it: (1) go-live gate, (2) critical path, (3) blocked, (4) most overdue,
+// (5) earliest due date, (6) the priority field, (7) title alphabetically,
+// so the order is always fully deterministic even when every real signal
+// ties.
+function compareMyActions(a: WorkItem, b: WorkItem): number {
+  const gate = Number(b.goLiveGate === true) - Number(a.goLiveGate === true);
+  if (gate !== 0) return gate;
+
+  const crit = Number(b.criticalPath === true) - Number(a.criticalPath === true);
+  if (crit !== 0) return crit;
+
+  const blocked = Number(isBlocked(b)) - Number(isBlocked(a));
+  if (blocked !== 0) return blocked;
+
+  const overdueA = isOverdue(a) && a.dueDate ? daysPastDue(a.dueDate) : 0;
+  const overdueB = isOverdue(b) && b.dueDate ? daysPastDue(b.dueDate) : 0;
+  if (overdueA !== overdueB) return overdueB - overdueA;
+
+  // Items with no due date sort after every dated item within a group; the
+  // "Later" group additionally documents this in its own JSDoc below.
+  const dueA = a.dueDate ?? "9999-99-99";
+  const dueB = b.dueDate ?? "9999-99-99";
+  if (dueA !== dueB) return dueA.localeCompare(dueB);
+
+  const prA = MY_ACTIONS_PRIORITY_RANK[a.priority ?? ""] ?? 99;
+  const prB = MY_ACTIONS_PRIORITY_RANK[b.priority ?? ""] ?? 99;
+  if (prA !== prB) return prA - prB;
+
+  return a.description.localeCompare(b.description);
+}
+
+export interface MyActionsCounts {
+  overdue: number;
+  dueThisWeek: number;
+  criticalPath: number;
+  blocked: number;
+}
+
+export interface MyActionsGroups {
+  needsAttention: WorkItem[]; // overdue, blocked, or both — sorted, see compareMyActions
+  dueThisWeek: WorkItem[];    // due today through the end of this week; excludes anything already above
+  later: WorkItem[];          // everything else active; items with no due date sort to the bottom
+  counts: MyActionsCounts;    // computed from the same grouped arrays, so these can never drift from what's shown
+}
+
+// Filters to active items assigned to `displayName`, groups them, and sorts
+// each group. `now` is only a parameter so this stays testable without
+// mocking the system clock; real callers omit it.
+export function computeMyActions(items: WorkItem[], displayName: string, now: Date = new Date()): MyActionsGroups {
+  const safeItems = Array.isArray(items) ? items : [];
+  const today = new Date(now.toDateString());
+  const weekEnd = endOfWeek(today);
+
+  const mine = safeItems.filter((w) => isActiveStatus(w) && isAssignedTo(w, displayName));
+
+  const needsAttention: WorkItem[] = [];
+  const dueThisWeek: WorkItem[] = [];
+  const later: WorkItem[] = [];
+
+  for (const w of mine) {
+    if (isOverdue(w) || isBlocked(w)) needsAttention.push(w);
+    else if (isDueThisWeek(w, today, weekEnd)) dueThisWeek.push(w);
+    else later.push(w);
+  }
+
+  needsAttention.sort(compareMyActions);
+  dueThisWeek.sort(compareMyActions);
+  later.sort(compareMyActions);
+
+  return {
+    needsAttention,
+    dueThisWeek,
+    later,
+    counts: {
+      overdue: mine.filter((w) => isOverdue(w)).length,
+      dueThisWeek: dueThisWeek.length, // the group's own length, not a re-filter — guarantees it can't disagree with what's displayed
+      criticalPath: mine.filter((w) => w.criticalPath === true).length,
+      blocked: mine.filter(isBlocked).length,
+    },
+  };
+}
+
 export function computeDashboardMetrics(items: WorkItem[]): DashboardMetrics {
   const safeItems = Array.isArray(items) ? items : [];
 

@@ -32,6 +32,44 @@ export async function listWorkItems(transitionId: string): Promise<WorkItem[]> {
   return (data ?? []).map(mapRow);
 }
 
+// Work items across every listed transition, in one round trip — for My
+// Actions, which (per its own header) aggregates "across active
+// transitions" rather than the single currently-selected one every other
+// screen uses. RLS (can_access_work_item) still applies per row, so this
+// only ever returns items the caller could already see one transition at a
+// time; it's a convenience for fetching them together, not a wider grant.
+export async function listWorkItemsForTransitions(transitionIds: string[]): Promise<WorkItem[]> {
+  if (transitionIds.length === 0) return [];
+  if (DEMO_MODE) {
+    const s = await import("../demo/store");
+    const lists = await Promise.all(transitionIds.map((id) => s.demoList(id)));
+    return lists.flat();
+  }
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("work_items").select(COLS).in("transition_id", transitionIds).order("sort_order");
+  if (error) throw error;
+  return (data ?? []).map(mapRow);
+}
+
+// The exact string My Actions must match against `work_items.owner` to find
+// "my" items. Calls the same server-side function
+// (current_user_display = coalesce(profiles.full_name, profiles.email))
+// migration 0011 uses to default a new item's owner — so the client's
+// matching logic can never drift from what the server would have assigned.
+// Returns null if there's no profile row / no auth context; callers should
+// treat that as "nothing can be matched," not as an error.
+export async function getCurrentUserDisplayName(): Promise<string | null> {
+  if (DEMO_MODE) {
+    const s = await import("../demo/store");
+    return s.demoOwners().find((o) => o.active)?.displayName ?? null;
+  }
+  if (!supabase) return null;
+  const { data, error } = await supabase.rpc("current_user_display");
+  if (error) throw error;
+  return (data as string | null) ?? null;
+}
+
 // Active owners for the Owner dropdown (Work Items + Methodology templates).
 // Readable by any authenticated user (RLS: work_owners_read, 0015).
 export async function listActiveOwners(): Promise<WorkOwner[]> {

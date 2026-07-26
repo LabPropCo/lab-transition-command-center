@@ -7,6 +7,7 @@ import { AppShell } from "./AppShell";
 import { Login } from "../screens/Login";
 import { Screen } from "../screens/Screen";
 import { Dashboard } from "../screens/Dashboard";
+import { MyActions } from "../screens/MyActions";
 import { Roadmap } from "../screens/Roadmap";
 import { WorkItems } from "../screens/WorkItems";
 import { AdminProvider } from "../admin/AdminProvider";
@@ -67,6 +68,7 @@ export const router = createBrowserRouter([
                 path: s.path.replace(/^\//, ""),
                 element: s.key === "work-items" ? <WorkItems />
                   : s.key === "dashboard" ? <Dashboard />
+                  : s.key === "myactions" ? <MyActions />
                   : s.key === "roadmap" ? <Roadmap />
                   : <Screen k={s.key} />,
               })),
