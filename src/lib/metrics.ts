@@ -139,6 +139,47 @@ export function computeStalledWorkstreams(workstreams: WorkstreamProgress[], min
     .slice(0, limit);
 }
 
+// Open (not overdue, not complete) items on the critical path or a go-live
+// gate, soonest due first — the forward-looking complement to
+// computePriorityItems' overdue list. Only items with a real due date
+// qualify; there's nothing to count down to otherwise.
+export function computeUpcomingMilestones(items: WorkItem[], limit = 6): WorkItem[] {
+  const safeItems = Array.isArray(items) ? items : [];
+  return safeItems
+    .filter((w) =>
+      w.dueDate
+      && w.status !== "Complete"
+      && w.status !== "Not Applicable"
+      && !isOverdue(w)
+      && (w.criticalPath === true || w.goLiveGate === true))
+    .slice()
+    .sort((a, b) => (a.dueDate ?? "").localeCompare(b.dueDate ?? ""))
+    .slice(0, limit);
+}
+
+export interface RecentProgress {
+  count: number;       // true total, uncapped — the fact to state in prose
+  items: WorkItem[];   // capped to `limit`, most-recent first — the fact to list
+}
+
+// Recently completed items — the honest substitute for a trend line, since
+// no historical/time-series data exists in this schema. `count` is the real
+// total (never capped); `items` is capped for display.
+export function computeRecentProgress(items: WorkItem[], days = 14, limit = 8): RecentProgress {
+  const safeItems = Array.isArray(items) ? items : [];
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const matches = safeItems
+    .filter((w) => {
+      if (!w.completedAt) return false;
+      const d = new Date(w.completedAt);
+      return !Number.isNaN(d.getTime()) && d >= cutoff;
+    })
+    .slice()
+    .sort((a, b) => (b.completedAt ?? "").localeCompare(a.completedAt ?? ""));
+  return { count: matches.length, items: matches.slice(0, limit) };
+}
+
 export function computeDashboardMetrics(items: WorkItem[]): DashboardMetrics {
   const safeItems = Array.isArray(items) ? items : [];
 
