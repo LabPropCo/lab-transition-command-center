@@ -83,7 +83,6 @@ export function Dashboard() {
 
   const goLiveDays = selected ? daysUntil(selected.targetGoLive) : null;
   const countdown = goLiveDays !== null ? goLiveCountdown(goLiveDays) : null;
-  const phase = selected?.currentPhase?.trim() || null;
 
   // An interpretive, evidence-only briefing — at most two sentences, each
   // relating facts rather than re-reading a numeral already on screen in the
@@ -108,10 +107,7 @@ export function Dashboard() {
     <section className="screen dash">
       <div className="dash__hero">
         <div className="dash__herotop">
-          <div>
-            <h1 className="dash__title">{selected?.name ?? "Dashboard"}</h1>
-            {phase && <p className="dash__meta">{phase}</p>}
-          </div>
+          <h1 className="dash__title">{selected?.name ?? "Dashboard"}</h1>
           {countdown && (
             <div className="dash__countdown">
               <div className="dash__countdown-value">{countdown.value}</div>
@@ -120,12 +116,7 @@ export function Dashboard() {
           )}
         </div>
 
-        {narrative && (
-          <div className="dash__summary">
-            <h2 className="dash__summary-label">Executive Summary</h2>
-            <p className="dash__narrative">{narrative}</p>
-          </div>
-        )}
+        {narrative && <p className="dash__narrative">{narrative}</p>}
       </div>
 
       {err && <p className="dash__err">{err}</p>}
@@ -165,7 +156,7 @@ export function Dashboard() {
 
           <div className="dash__pair">
             <section className="dash__block">
-              <h2 className="dash__block-title dash__block-title--attention">Needs attention</h2>
+              <h2 className="dash__block-title">Needs attention</h2>
               {priorityItems.length === 0 ? (
                 <p className="dash__quiet">Nothing overdue on the critical path or a go-live gate.</p>
               ) : (
@@ -188,7 +179,7 @@ export function Dashboard() {
             </section>
 
             <section className="dash__block">
-              <h2 className="dash__block-title dash__block-title--progress">Recent progress</h2>
+              <h2 className="dash__block-title">Recent progress</h2>
               {recentProgress.items.length === 0 ? (
                 <p className="dash__quiet">Nothing completed in the last two weeks.</p>
               ) : (

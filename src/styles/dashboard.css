@@ -5,24 +5,22 @@
 .dash__err { font-size: 13px; color: var(--terra); background: rgba(165,98,74,0.08); border: 1px solid rgba(165,98,74,0.25); border-radius: 6px; padding: 9px 12px; margin: 22px 0 0; }
 .dash__loading { margin-top: 22px; font-size: 13px; color: var(--muted); }
 
-/* ---------- Hero: identity + evidence, no status word ---------- */
+/* ---------- Hero: one composition, not a title plus a widget ---------- */
 .dash__hero { margin-top: 8px; max-width: 860px; }
-.dash__herotop { display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+.dash__herotop { display: flex; align-items: baseline; gap: 64px; }
 .dash__title { font-family: var(--font-display); font-weight: 500; font-size: 40px; line-height: 1.1; letter-spacing: -0.01em; color: var(--ink); margin: 0; }
-.dash__meta { margin: 8px 0 0; font-size: 15px; color: var(--soft); }
 
-/* The one figure the whole page is organized around — deliberately the
-   largest number on screen, but plain ink, no judgment color. */
-.dash__countdown { flex: 0 0 auto; text-align: right; }
+/* The countdown reads as part of the same statement as the title, not a
+   separate widget: same baseline, a fixed close gap, deliberately the
+   largest number on screen, but plain ink — no judgment color. */
+.dash__countdown { flex: 0 0 auto; display: flex; align-items: baseline; gap: 10px; }
 .dash__countdown-value { font-family: var(--font-display); font-weight: 500; font-size: 56px; line-height: 1; color: var(--ink); }
-.dash__countdown-label { margin-top: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); }
+.dash__countdown-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); max-width: 9ch; }
 
-.dash__summary { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line); max-width: 68ch; }
-.dash__summary-label { font-family: var(--font-body); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0; }
-.dash__narrative { margin: 12px 0 0; font-size: 15px; line-height: 1.65; color: var(--soft); }
+.dash__narrative { margin: 22px 0 0; max-width: 68ch; font-size: 15px; line-height: 1.65; color: var(--soft); }
 
 /* ---------- Quiet stat strip (not boxed tiles) ---------- */
-.dash__stats { display: flex; flex-wrap: wrap; gap: 56px; margin-top: 40px; padding-top: 22px; border-top: 1px solid var(--line); }
+.dash__stats { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 32px 56px; margin-top: 48px; padding-top: 22px; border-top: 1px solid var(--line); }
 .dash__stat-value { font-family: var(--font-display); font-size: 30px; font-weight: 500; color: var(--ink); line-height: 1.1; }
 .dash__stat-label { margin-top: 5px; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
 
@@ -30,13 +28,13 @@
 .dash__body { max-width: 960px; }
 .dash__block { margin-top: 44px; }
 .dash__block-title { font-family: var(--font-display); font-size: 17px; font-weight: 500; color: var(--ink); margin: 0 0 4px; }
-.dash__block-title--attention { color: var(--terra); }
-.dash__block-title--progress { color: var(--gold); }
 .dash__quiet { margin-top: 10px; font-size: 13.5px; color: var(--muted); }
 
-/* Needs attention / Recent progress side by side — uses the wider canvas and
-   separates "problems" from "wins" spatially before a word is even read. */
-.dash__pair { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; }
+/* Needs attention / Recent progress side by side. The metrics above need to
+   feel finished before this section begins — a deliberate pause, not a
+   rule — and the two lists are told apart by their own tone (bold ink rows
+   vs. quiet running prose), not by competing heading colors. */
+.dash__pair { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; margin-top: 64px; }
 .dash__pair .dash__block { margin-top: 0; }
 
 .dash__list { list-style: none; margin: 14px 0 0; padding: 0; }
@@ -76,7 +74,6 @@
 @media (max-width: 640px) {
   .dash__title { font-size: 30px; }
   .dash__stats { gap: 24px; }
-  .dash__herotop { flex-direction: column; gap: 18px; }
-  .dash__countdown { text-align: left; }
+  .dash__herotop { flex-direction: column; align-items: flex-start; gap: 18px; }
   .dash__countdown-value { font-size: 42px; }
 }
