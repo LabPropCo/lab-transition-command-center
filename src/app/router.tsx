@@ -10,6 +10,7 @@ import { Dashboard } from "../screens/Dashboard";
 import { MyActions } from "../screens/MyActions";
 import { Roadmap } from "../screens/Roadmap";
 import { WorkItems } from "../screens/WorkItems";
+import { Vendors } from "../screens/Vendors";
 import { AdminProvider } from "../admin/AdminProvider";
 import { RequireAdmin } from "../admin/RequireAdmin";
 import { AdminDashboard } from "../screens/admin/AdminDashboard";
@@ -17,6 +18,7 @@ import { TransitionSettings } from "../screens/admin/TransitionSettings";
 import { MethodologyLibrary } from "../screens/admin/MethodologyLibrary";
 import { Properties } from "../screens/admin/Properties";
 import { Owners } from "../screens/admin/Owners";
+import { VendorTypes } from "../screens/admin/VendorTypes";
 import { NotFound } from "../screens/NotFound";
 import { SCREENS } from "../lib/nav";
 import { DevBanner } from "../components/DevBanner";
@@ -61,6 +63,7 @@ export const router = createBrowserRouter([
                   { path: "methodology", element: <MethodologyLibrary /> },
                   { path: "properties", element: <Properties /> },
                   { path: "owners", element: <Owners /> },
+                  { path: "vendor-types", element: <VendorTypes /> },
                 ],
               },
               // The rest of the app's screens (admin handled above).
@@ -70,6 +73,7 @@ export const router = createBrowserRouter([
                   : s.key === "dashboard" ? <Dashboard />
                   : s.key === "myactions" ? <MyActions />
                   : s.key === "roadmap" ? <Roadmap />
+                  : s.key === "vendors" ? <Vendors />
                   : <Screen k={s.key} />,
               })),
               { path: "*", element: <NotFound /> },

@@ -54,4 +54,5 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { path: "/admin/methodology", title: "Methodology Library" },
   { path: "/admin/properties", title: "Properties" },
   { path: "/admin/owners", title: "Owners" },
+  { path: "/admin/vendor-types", title: "Vendor Types" },
 ];
