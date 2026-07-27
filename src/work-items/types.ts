@@ -5,6 +5,7 @@ export interface WorkItem {
   transitionId: string;
   propertyId: string | null;   // null = transition-level (shared)
   propertyActive: boolean;     // true for shared items; false only when the owning property is deactivated
+  archivedAt: string | null;   // set when the methodology template was archived/deleted and synced; null = active
   scopeType: ScopeType;
   code: string;
   sortOrder: number | null;

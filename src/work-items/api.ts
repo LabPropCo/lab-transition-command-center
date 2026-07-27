@@ -7,12 +7,13 @@ const COLS =
   "id,transition_id,property_id,scope_type,code,sort_order,phase,phase_order,workstream,sub_workstream," +
   "description,completion_standard,owner,responsible_party,priority,go_live_gate,critical_path,stage," +
   "gate_group,depends_on_code,start_date,due_date,status,notes,dropbox_link,completed_at,updated_at,updated_by," +
-  "property_active";
+  "property_active,archived_at";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function mapRow(r: any): WorkItem {
   return {
     id: r.id, transitionId: r.transition_id, propertyId: r.property_id, propertyActive: r.property_active ?? true,
+    archivedAt: r.archived_at ?? null,
     scopeType: r.scope_type,
     code: r.code, sortOrder: r.sort_order, phase: r.phase, phaseOrder: r.phase_order,
     workstream: r.workstream, subWorkstream: r.sub_workstream, description: r.description,
@@ -25,21 +26,28 @@ function mapRow(r: any): WorkItem {
 }
 
 // List all work items in a transition (RLS scopes to what the user may see).
-// Reads from the work_items_with_property_status view (0021), which left-joins
+// Reads from the work_items_with_property_status view (0022), which left-joins
 // properties and exposes property_active (always true for shared/transition-
-// scoped items, since property_id is null there). Default (no opts, or
-// excludeInactiveProperties omitted/false) returns every row, unchanged from
-// before this view existed — Dashboard, Roadmap, and any future caller keep
-// seeing the complete data set unless they explicitly opt in to hiding
-// inactive-property rows. Only Master Work Items passes excludeInactiveProperties,
-// gated behind its own "Show inactive properties" toggle.
+// scoped items, since property_id is null there) and the raw archived_at column.
+//
+// The two filters default in OPPOSITE directions, each matching what its own
+// sprint required:
+//  - excludeInactiveProperties defaults to false (include everything) — Sprint
+//    18.4 only wanted Master Work Items itself to opt into hiding; Dashboard/
+//    Roadmap, which call this with no options, must see exactly what they saw
+//    before that sprint.
+//  - includeArchived defaults to false (exclude archived work items) — Sprint
+//    18.5 explicitly requires archived items hidden from "normal counts,
+//    filters, dashboard operational metrics, or roadmap views unless those
+//    screens explicitly opt in" — so every caller gets this exclusion for
+//    free, and only Master Work Items' "Show archived" toggle opts back in.
 export async function listWorkItems(
   transitionId: string,
-  opts?: { excludeInactiveProperties?: boolean },
+  opts?: { excludeInactiveProperties?: boolean; includeArchived?: boolean },
 ): Promise<WorkItem[]> {
   if (DEMO_MODE) {
     const s = await import("../demo/store");
-    return s.demoList(transitionId, opts?.excludeInactiveProperties ?? false);
+    return s.demoList(transitionId, opts?.excludeInactiveProperties ?? false, opts?.includeArchived ?? false);
   }
   if (!supabase) return [];
   let query = supabase
@@ -47,6 +55,7 @@ export async function listWorkItems(
     .select(COLS)
     .eq("transition_id", transitionId);
   if (opts?.excludeInactiveProperties) query = query.eq("property_active", true);
+  if (!opts?.includeArchived) query = query.is("archived_at", null);
   const { data, error } = await query.order("sort_order");
   if (error) throw error;
   return (data ?? []).map(mapRow);
@@ -66,8 +75,12 @@ export async function listWorkItemsForTransitions(transitionIds: string[]): Prom
     return lists.flat();
   }
   if (!supabase) return [];
+  // Reads from the same view as listWorkItems (not the base table — COLS
+  // includes property_active/archived_at, which only exist there) and
+  // excludes archived work items by default, matching every other caller.
   const { data, error } = await supabase
-    .from("work_items").select(COLS).in("transition_id", transitionIds).order("sort_order");
+    .from("work_items_with_property_status").select(COLS).in("transition_id", transitionIds)
+    .is("archived_at", null).order("sort_order");
   if (error) throw error;
   return (data ?? []).map(mapRow);
 }
@@ -110,8 +123,13 @@ export async function updateWorkItem(id: string, patch: WorkItemPatch): Promise<
   if (Object.prototype.hasOwnProperty.call(patch, "due_date")) patch = { ...patch, due_date_source: "manual" };
   if (DEMO_MODE) { const s = await import("../demo/store"); return s.demoUpdate(id, patch); }
   if (!supabase) throw new Error("Backend not configured");
+  // Must UPDATE the base table (the view isn't writable), then re-select from
+  // the view for the fresh row — property_active/archived_at are view-only
+  // computed columns, so .select(COLS) straight off the UPDATE would fail.
+  const { error: updateError } = await supabase.from("work_items").update(patch).eq("id", id);
+  if (updateError) throw updateError;
   const { data, error } = await supabase
-    .from("work_items").update(patch).eq("id", id).select(COLS).single();
+    .from("work_items_with_property_status").select(COLS).eq("id", id).single();
   if (error) throw error;
   return mapRow(data);
 }

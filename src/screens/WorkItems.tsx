@@ -33,6 +33,7 @@ export function WorkItems() {
   // beyond the selected transition id) — resets to hidden on reload, same as
   // every other filter on this screen.
   const [showInactive, setShowInactive] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   const propName = useMemo(() => {
     const m = new Map(properties.map((p) => [p.id, p.name]));
@@ -50,11 +51,11 @@ export function WorkItems() {
     if (!selected) { setItems([]); setLoading(false); return; }
     let active = true;
     setLoading(true); setErr("");
-    listWorkItems(selected.id, { excludeInactiveProperties: !showInactive })
+    listWorkItems(selected.id, { excludeInactiveProperties: !showInactive, includeArchived: showArchived })
       .then((rows) => { if (active) { setItems(rows); setLoading(false); } })
       .catch((e) => { if (active) { setErr(e.message ?? "Failed to load"); setLoading(false); } });
     return () => { active = false; };
-  }, [selected, showInactive]);
+  }, [selected, showInactive, showArchived]);
 
   // Don't leave the screen blank on an invisible selection: if the property
   // currently filtered on drops out of the dropdown (toggle turned off while
@@ -159,6 +160,10 @@ export function WorkItems() {
           <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
           Show inactive properties
         </label>
+        <label className="wi__gate">
+          <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+          Show archived
+        </label>
       </div>
 
       {err && <p className="wi__err">{err}</p>}
@@ -187,6 +192,7 @@ export function WorkItems() {
                     <span className="wi__flags">
                       {w.criticalPath && <span className="wi__flag wi__flag--crit">Critical path</span>}
                       {w.goLiveGate && <span className="wi__flag wi__flag--gate">Go-live gate</span>}
+                      {w.archivedAt && <span className="wi__flag wi__flag--gate">Archived</span>}
                     </span>
                   </td>
                   <td className="wi__td">
