@@ -17,8 +17,8 @@ export function SyncPanel({ transitionId, transitionName, onClose, onApplied }: 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [add, setAdd] = useState(true);
-  const [rename, setRename] = useState(false);
-  const [metadata, setMetadata] = useState(false);
+  const [rename, setRename] = useState(true);
+  const [metadata, setMetadata] = useState(true);
   const [due, setDue] = useState(false);
   const [skipCompleted, setSkipCompleted] = useState(true);
   const [applying, setApplying] = useState(false);
@@ -33,6 +33,9 @@ export function SyncPanel({ transitionId, transitionName, onClose, onApplied }: 
   useEffect(() => { load(); }, [load]);
 
   const counts = ORDER.reduce((a, k) => { a[k] = rows.filter((r) => r.changeType === k).length; return a; }, {} as Record<string, number>);
+  const selectedCount = (add ? counts.add ?? 0 : 0) + (rename ? counts.rename ?? 0 : 0)
+    + (metadata ? counts.metadata ?? 0 : 0) + (due ? counts.due ?? 0 : 0);
+  const nothingSelected = !add && !rename && !metadata && !due;
 
   async function apply() {
     setApplying(true); setError(""); setResult(null);
@@ -113,9 +116,10 @@ export function SyncPanel({ transitionId, transitionName, onClose, onApplied }: 
         </div>
 
         <div className="panel__foot">
+          {nothingSelected && <p className="panel__error">Select at least one synchronization category.</p>}
           <button className="panel__cancel" onClick={onClose}>Close</button>
-          <button className="panel__save" disabled={applying || (!add && !rename && !metadata && !due)} onClick={() => void apply()}>
-            {applying ? "Applying…" : "Apply selected"}
+          <button className="panel__save" disabled={applying || nothingSelected} onClick={() => void apply()}>
+            {applying ? "Applying…" : `Apply ${selectedCount} Change${selectedCount === 1 ? "" : "s"}`}
           </button>
         </div>
       </aside>
