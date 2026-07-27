@@ -5,7 +5,7 @@ import type { WorkItem, WorkItemPatch } from "../work-items/types";
 import type { Transition, Property, WorkOwner } from "../types";
 import type { TransitionSettingsPatch } from "../admin/api";
 
-const items: WorkItem[] = DEMO_WORK_ITEMS.map((w) => ({ ...w }));
+const items: Omit<WorkItem, "propertyActive">[] = DEMO_WORK_ITEMS.map((w) => ({ ...w }));
 // Mutable so Transition Settings edits genuinely persist for the session
 // (mirrors `items` above) instead of silently no-opping. Resets on a full
 // reload, same as every other demo-store record — no browser storage.
@@ -35,14 +35,18 @@ export function demoProperties(transitionId: string): Property[] {
   return DEMO_PROPERTIES.filter((p) => p.transitionId === transitionId);
 }
 export function demoOwners(): WorkOwner[] { return DEMO_OWNERS.map((o) => ({ ...o })); }
-export function demoList(transitionId: string): WorkItem[] {
-  return items.filter((w) => w.transitionId === transitionId).map((w) => ({ ...w }));
+export function demoList(transitionId: string, excludeInactiveProperties = false): WorkItem[] {
+  const inactivePropertyIds = new Set(DEMO_PROPERTIES.filter((p) => !p.active).map((p) => p.id));
+  return items
+    .filter((w) => w.transitionId === transitionId)
+    .filter((w) => !excludeInactiveProperties || w.propertyId === null || !inactivePropertyIds.has(w.propertyId))
+    .map((w) => ({ ...w, propertyActive: w.propertyId === null || !inactivePropertyIds.has(w.propertyId) }));
 }
 export function demoUpdate(id: string, patch: WorkItemPatch): WorkItem {
   const idx = items.findIndex((w) => w.id === id);
   if (idx < 0) throw new Error("Demo item not found");
   const cur = items[idx];
-  const next: WorkItem = { ...cur };
+  const next: Omit<WorkItem, "propertyActive"> = { ...cur };
   if (patch.status !== undefined) {
     next.status = patch.status;
     if (patch.status === "Complete" && cur.status !== "Complete") next.completedAt = new Date().toISOString();
@@ -55,5 +59,6 @@ export function demoUpdate(id: string, patch: WorkItemPatch): WorkItem {
   if (patch.dropbox_link !== undefined) next.dropboxLink = patch.dropbox_link;
   next.updatedAt = new Date().toISOString();
   items[idx] = next;
-  return { ...next };
+  const inactivePropertyIds = new Set(DEMO_PROPERTIES.filter((p) => !p.active).map((p) => p.id));
+  return { ...next, propertyActive: next.propertyId === null || !inactivePropertyIds.has(next.propertyId) };
 }

@@ -6,12 +6,14 @@ import { DEMO_MODE } from "../demo/config";
 const COLS =
   "id,transition_id,property_id,scope_type,code,sort_order,phase,phase_order,workstream,sub_workstream," +
   "description,completion_standard,owner,responsible_party,priority,go_live_gate,critical_path,stage," +
-  "gate_group,depends_on_code,start_date,due_date,status,notes,dropbox_link,completed_at,updated_at,updated_by";
+  "gate_group,depends_on_code,start_date,due_date,status,notes,dropbox_link,completed_at,updated_at,updated_by," +
+  "property_active";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function mapRow(r: any): WorkItem {
   return {
-    id: r.id, transitionId: r.transition_id, propertyId: r.property_id, scopeType: r.scope_type,
+    id: r.id, transitionId: r.transition_id, propertyId: r.property_id, propertyActive: r.property_active ?? true,
+    scopeType: r.scope_type,
     code: r.code, sortOrder: r.sort_order, phase: r.phase, phaseOrder: r.phase_order,
     workstream: r.workstream, subWorkstream: r.sub_workstream, description: r.description,
     completionStandard: r.completion_standard, owner: r.owner, responsibleParty: r.responsible_party,
@@ -23,11 +25,29 @@ function mapRow(r: any): WorkItem {
 }
 
 // List all work items in a transition (RLS scopes to what the user may see).
-export async function listWorkItems(transitionId: string): Promise<WorkItem[]> {
-  if (DEMO_MODE) { const s = await import("../demo/store"); return s.demoList(transitionId); }
+// Reads from the work_items_with_property_status view (0021), which left-joins
+// properties and exposes property_active (always true for shared/transition-
+// scoped items, since property_id is null there). Default (no opts, or
+// excludeInactiveProperties omitted/false) returns every row, unchanged from
+// before this view existed — Dashboard, Roadmap, and any future caller keep
+// seeing the complete data set unless they explicitly opt in to hiding
+// inactive-property rows. Only Master Work Items passes excludeInactiveProperties,
+// gated behind its own "Show inactive properties" toggle.
+export async function listWorkItems(
+  transitionId: string,
+  opts?: { excludeInactiveProperties?: boolean },
+): Promise<WorkItem[]> {
+  if (DEMO_MODE) {
+    const s = await import("../demo/store");
+    return s.demoList(transitionId, opts?.excludeInactiveProperties ?? false);
+  }
   if (!supabase) return [];
-  const { data, error } = await supabase
-    .from("work_items").select(COLS).eq("transition_id", transitionId).order("sort_order");
+  let query = supabase
+    .from("work_items_with_property_status")
+    .select(COLS)
+    .eq("transition_id", transitionId);
+  if (opts?.excludeInactiveProperties) query = query.eq("property_active", true);
+  const { data, error } = await query.order("sort_order");
   if (error) throw error;
   return (data ?? []).map(mapRow);
 }

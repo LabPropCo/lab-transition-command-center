@@ -4,6 +4,7 @@ export interface WorkItem {
   id: string;
   transitionId: string;
   propertyId: string | null;   // null = transition-level (shared)
+  propertyActive: boolean;     // true for shared items; false only when the owning property is deactivated
   scopeType: ScopeType;
   code: string;
   sortOrder: number | null;
