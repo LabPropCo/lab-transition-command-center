@@ -7,6 +7,7 @@ import { listWorkItemsForTransitions, getCurrentUserDisplayName, updateWorkItem,
 import type { WorkItem, WorkItemPatch } from "../work-items/types";
 import type { WorkOwner } from "../types";
 import { computeMyActions, computeWaitingOn, computeMyRecentCompletions, isOverdue, type MyActionsGroups } from "../lib/metrics";
+import { blockedReason } from "../work-items/constants";
 import { WorkItemDetail } from "../components/WorkItemDetail";
 import { SCREENS } from "../lib/nav";
 import "../styles/myactions.css";
@@ -20,8 +21,11 @@ type ScrollTarget = "overdue" | "dueThisWeek" | "criticalPath" | "blocked";
 // The section a row lives in never needs to repeat its own reason for
 // being there — e.g. a row already under Critical Path doesn't also need
 // a "Critical Path" tag. Everywhere else, a flag it happens to also carry
-// is genuinely new information, so it's shown.
-type SectionKey = keyof Omit<MyActionsGroups, "counts">;
+// is genuinely new information, so it's shown. "allBlocked" isn't a real
+// section (see MyActionsGroups) — rows rendered from it are tagged with
+// the neutral "blocked" SectionKey instead, so a Critical Path or Go-Live
+// Gate item still shows its tag there.
+type SectionKey = keyof Omit<MyActionsGroups, "counts" | "allBlocked">;
 
 function daysOverdue(iso: string): number {
   const due = new Date(iso + "T00:00:00");
@@ -49,26 +53,28 @@ function dueLabel(w: WorkItem): string {
   return `Due ${formatDate(w.dueDate)}`;
 }
 
-const WAITING_PREFIX = "Waiting on ";
-
 // Only what helps decide what to work on next. Critical Path / Go-Live
 // Gate are shown unless the row's own section already says so. "Waiting
 // on X" tells you whose court the ball is in — genuinely decision-
 // relevant, unlike "Not Started"/"In Progress", which aren't, so those are
 // never shown at all. "Blocked" and "Executive Priority" never appear as
-// tags: both are entirely determined by fields already used to place the
-// row in its section (status === "Blocked", priority === "Critical"), so
-// a tag would either repeat the section header it's already under, or —
-// for Executive Attention Required specifically — could never fire
-// anywhere else, since any Critical-priority item is always sectioned
-// there first.
+// bare tags: both are entirely determined by fields already used to place
+// the row in its section (isBlocked(w), priority === "Critical"), so a
+// tag would either repeat the section header it's already under, or — for
+// Executive Attention Required specifically — could never fire anywhere
+// else, since any Critical-priority item is always sectioned there first.
+// A blocked row with a known party (Client/Vendor/Prior Manager) still
+// gets its "Waiting On X" tag regardless of section, since that's new
+// information (the reason), not a repeat of the section header; plain
+// "Blocked" contributes no tag at all, since blockedReason() returns null
+// for it and none is fabricated.
 //
-// Design note (not implemented — see the brief's "Blocked Work" section):
+// Design note (not implemented — see the Blocked v1 design discussion):
 // a fuller Blocked row would eventually add who specifically it's waiting
 // on and since when. Neither is tracked at that granularity today — the
 // status field only names a party/role (Client, Vendor, ...), not a
 // person, and "since when" would mean querying audit_log for the most
-// recent transition into "Blocked," which isn't wired up yet. This
+// recent transition into a blocked status, which isn't wired up yet. This
 // function already returns a flat array of independent strings, so
 // either addition is just one more entry here whenever that's built —
 // nothing about this shape needs to change to accommodate it.
@@ -76,7 +82,8 @@ function flagLabels(w: WorkItem, section: SectionKey): string[] {
   const flags: string[] = [];
   if (w.criticalPath && section !== "criticalPath") flags.push("Critical Path");
   if (w.goLiveGate && section !== "goLiveGates") flags.push("Go-Live Gate");
-  if (w.status.startsWith(WAITING_PREFIX)) flags.push(`Waiting On ${w.status.slice(WAITING_PREFIX.length)}`);
+  const reason = blockedReason(w.status);
+  if (reason) flags.push(`Waiting On ${reason}`);
   return flags;
 }
 
@@ -118,6 +125,13 @@ export function MyActions() {
   const [transitionFilter, setTransitionFilter] = useState<string>("all");
   const [openId, setOpenId] = useState<string | null>(null);
   const [pulsing, setPulsing] = useState<ScrollTarget | null>(null);
+  // Blocked is the one stat that can't just scroll to a section: section
+  // precedence means a blocked item that's also Critical-priority or
+  // critical-path lives elsewhere, so its own section never holds every
+  // blocked item. Clicking it instead toggles a temporary flat view of
+  // everything blocked (groups.allBlocked) in place of the normal grouped
+  // list — nothing is duplicated permanently, and precedence is untouched.
+  const [showAllBlocked, setShowAllBlocked] = useState(false);
 
   const transitionIds = useMemo(() => transitions.map((t) => t.id), [transitions]);
   const transitionNames = useMemo(() => new Map(transitions.map((t) => [t.id, t.name])), [transitions]);
@@ -224,6 +238,16 @@ export function MyActions() {
 
   function handleStatClick(target: ScrollTarget) {
     if (!groups) return;
+    if (target === "blocked") {
+      if (groups.allBlocked.length === 0) {
+        setPulsing("blocked");
+        window.setTimeout(() => setPulsing((p) => (p === "blocked" ? null : p)), 600);
+        return;
+      }
+      setShowAllBlocked((v) => !v);
+      return;
+    }
+    if (showAllBlocked) setShowAllBlocked(false);
     const ref = sectionRefs[target];
     if (groups.counts[target] === 0 || !ref.current) {
       setPulsing(target);
@@ -293,48 +317,73 @@ export function MyActions() {
                 <div className="ma__stat-value">{groups.counts.criticalPath}</div>
                 <div className="ma__stat-label">Critical path</div>
               </button>
-              <button type="button" className={"ma__stat" + (pulsing === "blocked" ? " ma__stat--pulse" : "")} onClick={() => handleStatClick("blocked")}>
-                <div className="ma__stat-value">{groups.counts.blocked}</div>
+              <button
+                type="button"
+                className={"ma__stat" + (pulsing === "blocked" ? " ma__stat--pulse" : "") + (showAllBlocked ? " ma__stat--active" : "")}
+                onClick={() => handleStatClick("blocked")}
+              >
+                <div className="ma__stat-value">{groups.allBlocked.length}</div>
                 <div className="ma__stat-label">Blocked</div>
               </button>
             </div>
 
             <div className="ma__layout">
               <div className="ma__body">
-                {urgentEmpty
-                  ? <p className="ma__quiet ma__quiet--lead">Nothing requires urgent attention right now.</p>
-                  : (
-                    <>
-                      {renderSection("executiveAttention", groups.executiveAttention)}
-                      {renderSection("criticalPath", groups.criticalPath)}
-                      {renderSection("goLiveGates", groups.goLiveGates)}
-                      {renderSection("blocked", groups.blocked)}
-                      {renderSection("overdue", groups.overdue)}
-                    </>
-                  )}
-
-                <section className="ma__group" ref={sectionRefs.dueThisWeek}>
-                  <h2 className="ma__group-title">Due this week</h2>
-                  {groups.dueThisWeek.length === 0 ? (
-                    <p className="ma__quiet">You're caught up for this week.</p>
-                  ) : (
-                    <ol className="ma__list">
-                      {groups.dueThisWeek.map((w) => (
-                        <ActionRow key={w.id} item={w} section="dueThisWeek" scopeLabel={scopeLabel(w)} onOpen={() => setOpenId(w.id)} />
-                      ))}
-                    </ol>
-                  )}
-                </section>
-
-                {groups.activeWork.length > 0 && (
+                {showAllBlocked ? (
                   <section className="ma__group">
-                    <h2 className="ma__group-title">Active work</h2>
+                    <div className="ma__blocked-head">
+                      <h2 className="ma__group-title">All blocked work</h2>
+                      <button type="button" className="ma__blocked-back" onClick={() => setShowAllBlocked(false)}>
+                        Back to full list
+                      </button>
+                    </div>
+                    <p className="ma__quiet">
+                      Every item currently blocked, including ones grouped above by a higher priority — nothing here is duplicated in those sections.
+                    </p>
                     <ol className="ma__list">
-                      {groups.activeWork.map((w) => (
-                        <ActionRow key={w.id} item={w} section="activeWork" scopeLabel={scopeLabel(w)} onOpen={() => setOpenId(w.id)} />
+                      {groups.allBlocked.map((w) => (
+                        <ActionRow key={w.id} item={w} section="blocked" scopeLabel={scopeLabel(w)} onOpen={() => setOpenId(w.id)} />
                       ))}
                     </ol>
                   </section>
+                ) : (
+                  <>
+                    {urgentEmpty
+                      ? <p className="ma__quiet ma__quiet--lead">Nothing requires urgent attention right now.</p>
+                      : (
+                        <>
+                          {renderSection("executiveAttention", groups.executiveAttention)}
+                          {renderSection("criticalPath", groups.criticalPath)}
+                          {renderSection("goLiveGates", groups.goLiveGates)}
+                          {renderSection("blocked", groups.blocked)}
+                          {renderSection("overdue", groups.overdue)}
+                        </>
+                      )}
+
+                    <section className="ma__group" ref={sectionRefs.dueThisWeek}>
+                      <h2 className="ma__group-title">Due this week</h2>
+                      {groups.dueThisWeek.length === 0 ? (
+                        <p className="ma__quiet">You're caught up for this week.</p>
+                      ) : (
+                        <ol className="ma__list">
+                          {groups.dueThisWeek.map((w) => (
+                            <ActionRow key={w.id} item={w} section="dueThisWeek" scopeLabel={scopeLabel(w)} onOpen={() => setOpenId(w.id)} />
+                          ))}
+                        </ol>
+                      )}
+                    </section>
+
+                    {groups.activeWork.length > 0 && (
+                      <section className="ma__group">
+                        <h2 className="ma__group-title">Active work</h2>
+                        <ol className="ma__list">
+                          {groups.activeWork.map((w) => (
+                            <ActionRow key={w.id} item={w} section="activeWork" scopeLabel={scopeLabel(w)} onOpen={() => setOpenId(w.id)} />
+                          ))}
+                        </ol>
+                      </section>
+                    )}
+                  </>
                 )}
               </div>
 

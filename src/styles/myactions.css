@@ -18,6 +18,13 @@
 .ma__stat-label { margin-top: 6px; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
 @keyframes ma-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 .ma__stat--pulse { animation: ma-pulse 0.6s ease; }
+/* Blocked stays engaged (not just a brief pulse) while its temporary
+   all-blocked view is open — an understated underline, no color/badge. */
+.ma__stat--active .ma__stat-label { text-decoration: underline; text-underline-offset: 3px; }
+
+.ma__blocked-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.ma__blocked-back { appearance: none; background: none; border: none; padding: 0; margin: 0; cursor: pointer; font: inherit; font-size: 13px; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+.ma__blocked-back:hover { color: var(--ink); }
 
 /* Main list + a narrow operator sidebar — not a wider list. The sidebar
    column only exists in the markup when it has something to show, so an

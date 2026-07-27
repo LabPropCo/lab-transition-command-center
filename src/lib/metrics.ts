@@ -2,6 +2,7 @@
 // fresh from WorkItem[] and never stored, so it can never drift from the work
 // items themselves (see ARCHITECTURE.md §7). Inputs are never mutated.
 import type { WorkItem } from "../work-items/types";
+import { BLOCKED_STATUSES, blockedReason } from "../work-items/constants";
 
 export interface GroupSummary {
   total: number;       // raw count in this group (all statuses, including Not Applicable)
@@ -152,8 +153,9 @@ export function isActiveStatus(w: WorkItem): boolean {
   return w.status !== "Complete" && w.status !== "Not Applicable";
 }
 
+// "Blocked" is four status values, not one — see BLOCKED_STATUSES.
 export function isBlocked(w: WorkItem): boolean {
-  return w.status === "Blocked";
+  return BLOCKED_STATUSES.includes(w.status);
 }
 
 // Case-insensitive, whitespace-trimmed match against the owner text field —
@@ -234,14 +236,25 @@ export interface MyActionsCounts {
 // because that's the more useful place for it to surface. `counts` are
 // each section's own length (not an independent re-filter), so a stat can
 // never disagree with the section it scrolls to.
+//
+// `allBlocked` is the one deliberate exception: a superset of every active
+// assigned item where isBlocked() is true, regardless of which section it
+// actually landed in. Section precedence means a blocked item that's also
+// Critical-priority or critical-path surfaces there instead of in
+// `blocked` — correct for the permanent grouped view, but it means
+// `blocked.length` alone understates total blocked exposure. `allBlocked`
+// is for the Blocked stat's displayed count and its temporary "show
+// everything blocked" view; it does not change section membership or
+// precedence, and no item is duplicated in the permanent sections above.
 export interface MyActionsGroups {
   executiveAttention: WorkItem[]; // priority === "Critical"
   criticalPath: WorkItem[];       // critical_path, not already above
   goLiveGates: WorkItem[];        // go_live_gate, not already above
-  blocked: WorkItem[];            // status === "Blocked", not already above
+  blocked: WorkItem[];            // isBlocked(), not already above
   overdue: WorkItem[];            // isOverdue(), not already above
   dueThisWeek: WorkItem[];        // due within the rolling 7-day window, not already above
   activeWork: WorkItem[];         // everything else active; items with no due date sort to the bottom
+  allBlocked: WorkItem[];         // every isBlocked() item regardless of section, sorted the same way
   counts: MyActionsCounts;
 }
 
@@ -276,6 +289,8 @@ export function computeMyActions(items: WorkItem[], displayName: string, now: Da
   [executiveAttention, criticalPath, goLiveGates, blocked, overdue, dueThisWeek, activeWork]
     .forEach((section) => section.sort(compareMyActions));
 
+  const allBlocked = mine.filter(isBlocked).sort(compareMyActions);
+
   return {
     executiveAttention,
     criticalPath,
@@ -284,6 +299,7 @@ export function computeMyActions(items: WorkItem[], displayName: string, now: Da
     overdue,
     dueThisWeek,
     activeWork,
+    allBlocked,
     counts: {
       overdue: overdue.length,
       dueThisWeek: dueThisWeek.length,
@@ -300,14 +316,16 @@ export interface WaitingOnGroup {
 
 // My active items where someone else needs to act next, grouped by the
 // party already named in the status value (Client / Prior Manager /
-// Vendor) — no new field. "Who specifically" and "since when" aren't
+// Vendor) — no new field. Plain "Blocked" items are excluded here (no
+// party to group by), even though they still count as blocked for
+// isBlocked()/My Actions. "Who specifically" and "since when" aren't
 // tracked at that granularity, so neither is shown; see the Blocked
 // design note in MyActions.tsx for what a fuller version would need.
 export function computeWaitingOn(items: WorkItem[], displayName: string): WaitingOnGroup[] {
-  const mine = items.filter((w) => isActiveStatus(w) && isAssignedTo(w, displayName) && w.status.startsWith("Waiting on "));
+  const mine = items.filter((w) => isActiveStatus(w) && isAssignedTo(w, displayName) && blockedReason(w.status) !== null);
   const counts = new Map<string, number>();
   for (const w of mine) {
-    const party = w.status.slice("Waiting on ".length);
+    const party = blockedReason(w.status)!;
     counts.set(party, (counts.get(party) ?? 0) + 1);
   }
   return Array.from(counts.entries())
