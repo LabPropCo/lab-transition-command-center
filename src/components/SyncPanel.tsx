@@ -97,8 +97,8 @@ export function SyncPanel({ transitionId, transitionName, onClose, onApplied }: 
                         {r.changeType === "add" && (r.newValue ?? "")}
                         {(r.changeType === "rename" || r.changeType === "metadata" || r.changeType === "due") && `${r.field}: ${r.oldValue ?? "—"} → ${r.newValue ?? "—"}`}
                         {r.changeType === "conflict" && `scope is ${r.oldValue} here, ${r.newValue} in methodology`}
-                        {r.changeType === "skip" && "completed — will not be changed"}
-                        {r.changeType === "archived" && (r.newValue ?? "template archived — work retained")}
+                        {r.changeType === "skip" && `Changed: ${r.field ?? "—"}. ${r.newValue ?? "Protected because this item is Complete."}`}
+                        {r.changeType === "archived" && (r.newValue ?? "Methodology item archived — existing transition work retained.")}
                       </span>
                       {DEFERRABLE.has(r.changeType) && r.templateId && (
                         <button className="sync__ignore" onClick={() => void ignore(r)} title="Ignore this change for this transition">Ignore</button>
