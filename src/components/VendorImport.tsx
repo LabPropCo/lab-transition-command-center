@@ -3,33 +3,24 @@ import type { Vendor } from "../vendors/types";
 import type { VendorSourceInput } from "../vendors/api";
 import type { Property } from "../types";
 
-// Minimal, dependency-free CSV parser (handles quoted fields with embedded
-// commas). Real .xlsx binary parsing would need a new npm dependency (e.g.
-// xlsx/papaparse) that isn't in this project yet — not added without
-// explicit approval, so for now the import accepts CSV (Excel's own "Save
-// As CSV" export covers the common case) rather than the raw .xlsx binary.
-function parseCsv(text: string): string[][] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let field = "";
-  let inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inQuotes) {
-      if (c === '"') {
-        if (text[i + 1] === '"') { field += '"'; i++; } else { inQuotes = false; }
-      } else field += c;
-    } else if (c === '"') inQuotes = true;
-    else if (c === ",") { row.push(field); field = ""; }
-    else if (c === "\n" || c === "\r") {
-      if (c === "\r" && text[i + 1] === "\n") i++;
-      row.push(field); field = "";
-      if (row.some((f) => f.trim() !== "")) rows.push(row);
-      row = [];
-    } else field += c;
-  }
-  if (field !== "" || row.length > 0) { row.push(field); if (row.some((f) => f.trim() !== "")) rows.push(row); }
-  return rows;
+// Reads the first worksheet of a .csv, .xlsx, or .xls file into a plain
+// string[][] (header row + data rows) via SheetJS — one reading layer for
+// every supported format, rather than a hand-rolled CSV-only parser. Cell
+// values are coerced to strings; existing downstream code already trims
+// and normalizes on read, so behavior for CSV is unchanged.
+// Dynamically imported: SheetJS adds a few hundred kB, and every other
+// screen in the app should not pay that cost — only loaded the moment a
+// user actually opens this import panel.
+async function readWorkbookTable(file: File): Promise<string[][]> {
+  const XLSX = await import("xlsx");
+  const buf = await file.arrayBuffer();
+  const workbook = XLSX.read(buf, { type: "array" });
+  const sheetName = workbook.SheetNames[0];
+  if (!sheetName) throw new Error("That file has no readable worksheet.");
+  const sheet = workbook.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: false }) as unknown[][];
+  if (rows.length === 0) throw new Error("That file has no readable worksheet.");
+  return rows.map((r) => r.map((cell) => (cell === null || cell === undefined ? "" : String(cell))));
 }
 
 interface ParsedRow {
@@ -66,13 +57,19 @@ export function VendorImport({ properties, existingVendors, onClose, onCreate, o
     const file = e.target.files?.[0];
     if (!file) return;
     setFileError("");
-    file.text().then((text) => {
-      const table = parseCsv(text);
-      if (table.length === 0) { setFileError("That file has no rows."); return; }
-      const header = table[0].map((h) => h.trim().toLowerCase());
+    readWorkbookTable(file).then((table) => {
+      const rawHeader = table[0];
+      const header = rawHeader.map((h) => h.trim().toLowerCase());
       const nameIdx = header.findIndex((h) => h === "vendor name" || h === "name" || h === "vendor");
       const notesIdx = header.findIndex((h) => h === "notes" || h === "note");
-      if (nameIdx === -1) { setFileError('Could not find a "Vendor Name" column. The first row should have a header, e.g. "Vendor Name".'); return; }
+      if (nameIdx === -1) {
+        const found = rawHeader.map((h) => h.trim()).filter(Boolean);
+        setFileError(
+          "Expected column:\n• Vendor Name\n\n" +
+          (found.length > 0 ? `Found:\n${found.map((h) => `• ${h}`).join("\n")}` : "Found: (no header row could be read)"),
+        );
+        return;
+      }
       const parsed: ParsedRow[] = table.slice(1)
         .map((r) => ({ originalName: (r[nameIdx] ?? "").trim(), notes: notesIdx >= 0 ? (r[notesIdx] ?? "").trim() || null : null }))
         .filter((r) => r.originalName)
@@ -81,7 +78,7 @@ export function VendorImport({ properties, existingVendors, onClose, onCreate, o
           return { ...r, matchVendorId, resolution: matchVendorId ? "link" : "create" } as ParsedRow;
         });
       setRows(parsed);
-    }).catch(() => setFileError("Could not read that file."));
+    }).catch((err) => setFileError(err instanceof Error ? err.message : "Could not read that file."));
   }
 
   function setResolution(i: number, resolution: ParsedRow["resolution"]) {
@@ -141,10 +138,12 @@ export function VendorImport({ properties, existingVendors, onClose, onCreate, o
                 </label>
               </div>
               <label className="panel__field">
-                <span className="panel__label">CSV file — a "Vendor Name" column, optionally a "Notes" column</span>
-                <input className="panel__input" type="file" accept=".csv,text/csv" onChange={onFile} />
+                <span className="panel__label">Spreadsheet (.csv, .xlsx, or .xls) — a "Vendor Name" column, optionally a "Notes" column</span>
+                <input className="panel__input" type="file"
+                  accept=".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  onChange={onFile} />
               </label>
-              {fileError && <p className="panel__error">{fileError}</p>}
+              {fileError && <p className="panel__error" style={{ whiteSpace: "pre-line" }}>{fileError}</p>}
             </>
           ) : (
             <>
