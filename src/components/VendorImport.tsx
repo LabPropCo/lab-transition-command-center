@@ -45,6 +45,7 @@ export function VendorImport({ properties, existingVendors, onClose, onCreate, o
   const [rows, setRows] = useState<ParsedRow[] | null>(null);
   const [fileError, setFileError] = useState("");
   const [applying, setApplying] = useState(false);
+  const [applyError, setApplyError] = useState("");
   const [result, setResult] = useState<{ created: number; linked: number; skipped: number } | null>(null);
 
   const existingByName = useMemo(() => {
@@ -87,14 +88,24 @@ export function VendorImport({ properties, existingVendors, onClose, onCreate, o
 
   async function apply() {
     if (!rows) return;
-    setApplying(true);
+    setApplying(true); setApplyError("");
     let created = 0, linked = 0, skipped = 0;
     const source: VendorSourceInput = { propertyId: propertyId || null, sourceLabel: sourceLabel.trim() || null, originalImportedName: "" };
-    for (const r of rows) {
-      const rowSource = { ...source, originalImportedName: r.originalName };
-      if (r.resolution === "skip") { skipped++; continue; }
-      if (r.resolution === "link" && r.matchVendorId) { await onLink(r.matchVendorId, rowSource); linked++; continue; }
-      await onCreate(r.originalName, rowSource); created++;
+    // Rows already applied before a failure stay applied — this loop can't
+    // roll them back, so on error we stop and report exactly how far it got
+    // rather than leaving the button spinning on a silently-hung promise.
+    try {
+      for (const r of rows) {
+        const rowSource = { ...source, originalImportedName: r.originalName };
+        if (r.resolution === "skip") { skipped++; continue; }
+        if (r.resolution === "link" && r.matchVendorId) { await onLink(r.matchVendorId, rowSource); linked++; continue; }
+        await onCreate(r.originalName, rowSource); created++;
+      }
+    } catch (e) {
+      setApplying(false);
+      const msg = e instanceof Error ? e.message : "Import failed.";
+      setApplyError(`Stopped after ${created} created, ${linked} linked, ${skipped} skipped — "${rows[created + linked + skipped]?.originalName ?? "a row"}" failed: ${msg}`);
+      return;
     }
     setApplying(false);
     setResult({ created, linked, skipped });
@@ -148,6 +159,7 @@ export function VendorImport({ properties, existingVendors, onClose, onCreate, o
           ) : (
             <>
               <p className="panel__text">{rows.length} row{rows.length === 1 ? "" : "s"} found. Review before importing.</p>
+              {applyError && <p className="panel__error">{applyError}</p>}
               <div className="ven__import-list">
                 {rows.map((r, i) => (
                   <div className="ven__import-row" key={i}>

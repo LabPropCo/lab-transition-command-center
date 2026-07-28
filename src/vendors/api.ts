@@ -29,14 +29,49 @@ function friendly(e: any): Error {
   const msg = String(e?.message ?? e);
   if (e?.code === "42501" || /permission denied/i.test(msg)) return new Error("Permission denied — you may not have write access to this transition.");
   if (e?.code === "PGRST205" || /schema cache/i.test(msg)) return new Error("The API can't see the vendors tables yet — migration 0017 may not be applied, or PostgREST's schema cache needs a reload.");
+  // A bare "Bad Request" with no PostgREST error shape (no .code/.details/.hint)
+  // means the request never reached the database — almost always an oversized
+  // request URL rejected at the API gateway. Point at the real cause instead of
+  // repeating the content-free text verbatim.
+  if (!e?.code && !e?.details && /^bad request$/i.test(msg.trim())) {
+    return new Error("The request was rejected before reaching the database (likely too large — an oversized filter list). This is a bug, not a data problem; please report it.");
+  }
   return e instanceof Error ? e : new Error(msg);
+}
+
+// PostgREST caps unranged selects at its configured max rows (1000 on this
+// project) — silently, with no error. A transition can have more vendors (or
+// vendor_sources rows) than that, so every list here pages through with
+// .range() until a short page proves there's nothing left, rather than ever
+// trusting a single unranged select to return everything.
+const PAGE_SIZE = 1000;
+async function fetchAllPages<T>(fetchPage: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: any }>): Promise<T[]> {
+  const all: T[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await fetchPage(from, from + PAGE_SIZE - 1);
+    if (error) throw friendly(error);
+    const page = data ?? [];
+    all.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return all;
 }
 
 export async function listVendors(transitionId: string): Promise<Vendor[]> {
   if (DEMO_MODE || !supabase) return [];
-  const { data, error } = await supabase.from("vendors").select(COLS).eq("transition_id", transitionId).order("name");
-  if (error) throw friendly(error);
-  return (data ?? []).map(mapVendor);
+  const client = supabase;
+  // .order("id") is a required tiebreaker, not decoration: many vendor names
+  // repeat (duplicate imports), and Postgres makes no ordering guarantee among
+  // rows tied on the primary sort column — without a unique secondary key,
+  // range()-based pagination can return the same tied row on two different
+  // pages (and skip another), which is exactly what surfaced as React
+  // "duplicate key" warnings during testing.
+  const rows = await fetchAllPages<any>((from, to) =>
+    client.from("vendors").select(COLS).eq("transition_id", transitionId).order("name").order("id").range(from, to),
+  );
+  return rows.map(mapVendor);
 }
 
 export async function createVendor(transitionId: string, name: string): Promise<Vendor> {
@@ -101,13 +136,28 @@ function mapSource(r: any): VendorSource {
     originalImportedName: r.original_imported_name, importedBy: r.imported_by, importDate: r.import_date,
   };
 }
-export async function listVendorSources(vendorIds: string[]): Promise<VendorSource[]> {
-  if (DEMO_MODE || !supabase || vendorIds.length === 0) return [];
-  const { data, error } = await supabase.from("vendor_sources")
-    .select("id,vendor_id,property_id,source_label,original_imported_name,imported_by,import_date")
-    .in("vendor_id", vendorIds);
-  if (error) throw friendly(error);
-  return (data ?? []).map(mapSource);
+// Filters by transition through the vendors FK (vendors!inner + eq on the
+// joined column) rather than an .in("vendor_id", [...ids]) list. This
+// transition can have thousands of vendors — passing them all as a giant
+// .in() list built a 37,000-character request URL that Supabase's API
+// gateway rejected outright with a bare, contentless "Bad Request" (plain
+// text, no PostgREST error shape) before the database ever saw it. Filtering
+// server-side by transition_id keeps the URL constant-size regardless of how
+// many vendors exist.
+export async function listVendorSources(transitionId: string): Promise<VendorSource[]> {
+  if (DEMO_MODE || !supabase) return [];
+  const client = supabase;
+  // .order("id") for the same reason as listVendors: range() pagination needs
+  // a unique, deterministic sort key, and this query previously had no ORDER
+  // BY at all (Postgres's row order with none is unspecified between calls).
+  const rows = await fetchAllPages<any>((from, to) =>
+    client.from("vendor_sources")
+      .select("id,vendor_id,property_id,source_label,original_imported_name,imported_by,import_date,vendors!inner(transition_id)")
+      .eq("vendors.transition_id", transitionId)
+      .order("id")
+      .range(from, to),
+  );
+  return rows.map(mapSource);
 }
 
 export interface VendorSourceInput { propertyId: string | null; sourceLabel: string | null; originalImportedName: string; }

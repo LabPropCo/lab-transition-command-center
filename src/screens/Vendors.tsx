@@ -44,13 +44,16 @@ export function Vendors() {
   const load = useCallback(() => {
     if (!transitionId) { setVendors([]); setLoading(false); return; }
     setLoading(true); setErr("");
-    Promise.all([listVendors(transitionId), listAllVendorTypes(), listVendorAudit(transitionId)])
-      .then(([v, t, a]) => {
-        setVendors(v); setAllVendorTypes(t); setAudit(a);
+    // listVendorSources is scoped by transitionId directly (not by vendor
+    // IDs), so it no longer needs to wait on the vendors fetch — running all
+    // four in parallel matters here since a transition can have thousands of
+    // rows across these tables and each one now pages through in full.
+    Promise.all([listVendors(transitionId), listAllVendorTypes(), listVendorAudit(transitionId), listVendorSources(transitionId)])
+      .then(([v, t, a, s]) => {
+        setVendors(v); setAllVendorTypes(t); setAudit(a); setSources(s);
         setVendorTypes(t.filter((x) => x.active));
-        return listVendorSources(v.map((x) => x.id));
+        setLoading(false);
       })
-      .then((s) => { setSources(s); setLoading(false); })
       .catch((e) => { setErr(e instanceof Error ? e.message : "Failed to load"); setLoading(false); });
   }, [transitionId]);
   useEffect(() => { load(); }, [load]);
