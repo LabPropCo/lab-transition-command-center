@@ -4,6 +4,23 @@
 
 **Scope discipline:** this phase proves the existing migrations (`0024`–`0031`) and `SupabaseLabosRepository` against a real Postgres/Supabase instance. No new code, schema, or feature work happens here — if execution surfaces a real defect, the fix is scoped and proposed separately, not folded into this runbook.
 
+## Verification Manifest
+
+Two SHAs, deliberately kept distinct — a documentation-only change is not the code version being database-tested, and conflating them would misrepresent what's actually under test:
+
+| Field | Value |
+|---|---|
+| Release candidate code SHA | `0438d433eeef905675ae03b90f47d6fdc3c0e888` — the last non-documentation implementation commit ("add the developer CLI and minimal Sync Review screen"). **This is the code the Database Verification sequence tests.** |
+| Release documentation SHA | This commit (`docs(labos): record Milestone 1 verification manifest`) — deliberately not inlined as a literal hash here, since a commit cannot contain its own post-commit SHA without either a circular reference or an amend; resolve via `git rev-parse HEAD` immediately after this commit, or `git log --oneline -1` |
+| Full Milestone 1 range | `2084ed467081ff1d584cf570a1f9a880f936fd72..` + this commit's SHA (see above) |
+| Total commits | 9 |
+| Branch | `feature/v0.5-executive-dashboard` |
+| Working-tree status | Clean except pre-existing, unrelated uncommitted work (Administration module + LabOS Home shell + migration `0023`) — see the Commit Review below for the exact file list |
+| Migration range | `0001`–`0031` |
+| Runbook version | This revision (two-SHA Verification Manifest, Execution Gate, Section 3.6 test-user creation via the real Admin API) |
+| Supabase CLI version | `2.110.0` |
+| Node version | `v24.18.0` |
+
 ## Execution Gate — current status
 
 Execution does not begin until every row below reads Provided. As of this revision:
