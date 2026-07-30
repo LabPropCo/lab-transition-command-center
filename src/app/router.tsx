@@ -11,6 +11,7 @@ import { MyActions } from "../screens/MyActions";
 import { Roadmap } from "../screens/Roadmap";
 import { WorkItems } from "../screens/WorkItems";
 import { Vendors } from "../screens/Vendors";
+import { SyncReviewDemo } from "../screens/labos/SyncReviewDemo";
 import { AdminProvider } from "../admin/AdminProvider";
 import { RequireAdmin } from "../admin/RequireAdmin";
 import { AdminDashboard } from "../screens/admin/AdminDashboard";
@@ -43,6 +44,11 @@ export const router = createBrowserRouter([
       {
         element: <RequireAuth />,
         children: [
+          // LabOS Milestone 1 — internal operational control surface only,
+          // not linked from any navigation. Runs the real ingestion pipeline
+          // against synthetic demo data (in-memory mock repository, no live
+          // Supabase connection) so its output can be visually verified.
+          { path: "labos/sync-review", element: <SyncReviewDemo /> },
           {
             element: (
               <TransitionProvider>
