@@ -21,7 +21,7 @@ export interface ScreenMeta {
 }
 
 export const SCREENS: Record<ScreenKey, ScreenMeta> = {
-  dashboard:   { key: "dashboard",   path: "/dashboard",   title: "Dashboard",                 deck: "Where the transition stands, at a glance.",                                              milestone: "M3" },
+  dashboard:   { key: "dashboard",   path: "/dashboard",   title: "Dashboard",                 deck: "What leadership should do today, not what metrics exist.",                                milestone: "M3" },
   myactions:   { key: "myactions",   path: "/my-actions",  title: "My Actions",                deck: "Exactly what you own right now.",                                                        milestone: "M4" },
   meeting:     { key: "meeting",     path: "/meeting",     title: "Weekly Transition Meeting", deck: "Everything the meeting needs, in the order you need it.",                                 milestone: "M4" },
   "work-items":{ key: "work-items",  path: "/work-items",  title: "Master Work Items",         deck: "Every work item lives here. Open one for full detail; change a status and the dashboard follows.", milestone: "M2" },
@@ -53,4 +53,6 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { path: "/admin/transition-settings", title: "Transition Settings" },
   { path: "/admin/methodology", title: "Methodology Library" },
   { path: "/admin/properties", title: "Properties" },
+  { path: "/admin/owners", title: "Owners" },
+  { path: "/admin/vendor-types", title: "Vendor Types" },
 ];

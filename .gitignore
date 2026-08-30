@@ -7,3 +7,5 @@ dist
 .DS_Store
 .vite
 .claude/
+supabase/.temp/
+*.tsbuildinfo

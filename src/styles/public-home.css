@@ -1,0 +1,483 @@
+@import "./tokens.css";
+
+/* Public homepage (thelabpropco.com) — the external brand experience.
+   Translates three real patterns from the internal tools rather than
+   inventing new visual language:
+   1. The status-badge pill (Variance Comment Builder's status-badge--auto)
+      — the hero's property-evidence caption, a truthful state annotation.
+   2. The nav active-indicator rule (Transition Command Center sidebar's
+      3px gold bar) — extended into a throughline: a persistent gold rule
+      connecting the hero's operating loop straight into the sections that
+      expand it, so the page reads as one system, not isolated panels.
+   3. The Rhythm Table ("Ritual | Why It Exists") — restructured as a
+      Stage -> Expansion -> Produces progression, so "how we operate" and
+      "what that produces" build on the hero's operating loop instead of
+      repeating its four words mechanically.
+   Dark ink bookends the page (hero, closing) as punctuation; gold is a
+   precision accent (rules, dots, badge) — never a block of colored text. */
+
+.ph { background: var(--paper); color: var(--ink); }
+.ph__inner { max-width: 1120px; margin: 0 auto; padding: 0 32px; }
+
+/* ================= HERO: four connected layers ================= */
+.ph__hero { background: var(--ink); color: #F4EEE3; }
+
+/* Layer 1 — functional header: logo + real in-page navigation, not a
+   decorative line standing in for structure. */
+.ph__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  /* padding-top/bottom only — .ph__inner's horizontal padding must survive
+     on this shared element; the shorthand `padding` property here would
+     silently overwrite it (equal specificity, later rule wins the whole
+     property), which is exactly what caused the nav to run to the raw
+     viewport edge at laptop widths below the ~1184px max-width breakpoint. */
+  padding-top: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(244, 238, 227, 0.14);
+}
+.ph__logo { height: 41px; width: auto; display: block; flex: none; }
+.ph__nav {
+  display: flex;
+  gap: 28px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.ph__nav a {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #C9C0AF;
+}
+.ph__nav a:hover { color: #F4EEE3; }
+@media (max-width: 860px) {
+  .ph__nav { display: none; }
+}
+
+/* Layer 2 — primary positioning: tightened, composed, not floating in a
+   large empty field. Padding reduced so a meaningful portion of the
+   property photograph clears the fold on a standard laptop viewport. */
+.ph__hero-primary { padding-top: 36px; padding-bottom: 24px; }
+.ph__hero-eyebrow {
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #CBA55F;
+  margin: 0 0 16px;
+}
+.ph__h1 {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 47px;
+  line-height: 1.16;
+  letter-spacing: -0.01em;
+  margin: 0 0 18px;
+  max-width: 17ch;
+  color: #F4EEE3;
+  text-wrap: balance;
+}
+.ph__hero-sub {
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.65;
+  color: #C9C0AF;
+  max-width: 58ch;
+  margin: 0;
+}
+
+/* Layer 3 — property evidence: a wide band crossing the composition,
+   substantial enough to matter. Caption is the only annotation — no
+   corner brackets or invented metadata. */
+.ph__hero-evidence { position: relative; }
+.ph__hero-evidence img {
+  width: 100%;
+  height: 340px;
+  object-fit: cover;
+  object-position: center 56%;
+  display: block;
+}
+.ph__hero-evidence-caption {
+  position: absolute;
+  left: 32px;
+  bottom: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  background: rgba(38, 33, 26, 0.72);
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #F4EEE3;
+}
+.ph__hero-evidence-caption .dot { width: 6px; height: 6px; border-radius: 50%; background: #CBA55F; flex: none; }
+@media (max-width: 700px) {
+  .ph__hero-evidence img { height: 220px; object-position: center 42%; }
+}
+
+/* Layer 4 — the operating loop: a real sequence, not four feature cards.
+   Grid, rules, and directional arrows, echoing the internal tools' own
+   status/step language. This band is the throughline's point of origin —
+   the gold rule below continues straight into the sections that expand it. */
+.ph__loop-band {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.ph__loop-stage {
+  padding: 22px 20px 26px;
+  border-top: 1px solid rgba(203, 165, 95, 0.5);
+  position: relative;
+}
+.ph__loop-stage::after {
+  content: "\2192";
+  position: absolute;
+  top: 22px;
+  right: -14px;
+  color: #CBA55F;
+  font-size: 14px;
+}
+.ph__loop-stage:last-child::after { content: none; }
+.ph__loop-stage-label {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #F4EEE3;
+  margin: 0;
+}
+@media (max-width: 860px) {
+  .ph__loop-band { grid-template-columns: repeat(2, 1fr); }
+  .ph__loop-stage:nth-child(2)::after { content: none; }
+}
+@media (max-width: 480px) {
+  .ph__loop-band { grid-template-columns: 1fr; }
+  .ph__loop-stage::after { content: none; }
+  .ph__loop-stage { border-top: 1px solid rgba(203, 165, 95, 0.5); }
+}
+
+/* ================= The throughline: continues out of the hero's
+   operating-loop band, connecting the sections that expand it into one
+   system rather than isolated marketing blocks. ================= */
+.ph__system { border-left: 1px solid var(--gold); }
+.ph__system .ph__inner { padding-left: 31px; }
+
+/* ---------- Operating thesis: the beginning of the operating story, not a
+   decorative quotation floating in empty space. ---------- */
+.ph__thesis {
+  padding-top: 52px;
+  padding-bottom: 56px;
+  border-bottom: 1px solid var(--line);
+}
+.ph__thesis-eyebrow {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 18px;
+}
+.ph__thesis-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+  align-items: start;
+}
+.ph__thesis-maxim {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 28px;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 0;
+  color: var(--ink);
+  max-width: 14ch;
+}
+.ph__thesis-maxim .dot { color: var(--gold); }
+.ph__thesis-explain p {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--soft);
+  margin: 0;
+  max-width: 46ch;
+}
+@media (max-width: 760px) {
+  .ph__thesis-row { grid-template-columns: 1fr; gap: 20px; }
+}
+
+/* ---------- Section shell (operating-loop expansion + capabilities) ---------- */
+.ph__section {
+  padding-top: 56px;
+  padding-bottom: 56px;
+  border-bottom: 1px solid var(--line);
+}
+.ph__section-eyebrow {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 10px;
+}
+.ph__section-title {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 27px;
+  letter-spacing: -0.01em;
+  margin: 0 0 12px;
+  color: var(--ink);
+}
+.ph__section-deck {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--soft);
+  max-width: 56ch;
+  margin: 0 0 32px;
+}
+
+/* Expansion of the hero's operating loop — each stage restated with what
+   it looks like in practice and what it produces, not the same four words
+   repeated mechanically. */
+.ph__loop-expand { border-top: 1px solid var(--line); }
+.ph__loop-expand-row {
+  display: grid;
+  grid-template-columns: 200px 1fr 220px;
+  gap: 24px;
+  align-items: center;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+.ph__loop-expand-row .stage {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.ph__loop-expand-row .detail {
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--ink);
+}
+.ph__loop-expand-row .produces {
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--soft);
+  text-align: right;
+}
+.ph__loop-expand-row .produces::before { content: "\2192  "; color: var(--gold); }
+@media (max-width: 760px) {
+  .ph__loop-expand-row { grid-template-columns: 1fr; gap: 6px; text-align: left; }
+  .ph__loop-expand-row .produces { text-align: left; }
+}
+
+/* ---------- What we manage: a plain structured list, no photography (documentary-or-absent rule) ---------- */
+.ph__capabilities-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.ph__capabilities-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 1.4fr;
+  gap: 24px;
+  align-items: baseline;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+.ph__capabilities-row .num {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+}
+.ph__capabilities-row b {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+.ph__capabilities-row span {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--soft);
+  line-height: 1.6;
+}
+@media (max-width: 640px) {
+  .ph__capabilities-row { grid-template-columns: 24px 1fr; row-gap: 6px; }
+  .ph__capabilities-row .num { grid-row: 1; grid-column: 1; }
+  .ph__capabilities-row b { grid-row: 1; grid-column: 2; }
+  .ph__capabilities-row span { grid-row: 2; grid-column: 2; }
+}
+
+/* A single smaller supporting image — real multifamily scale, not a
+   gallery. Cropped toward the façade, away from the roofline. */
+.ph__manage-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 40px;
+  align-items: start;
+}
+.ph__manage-photo { position: relative; }
+.ph__manage-photo img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  object-position: center 55%;
+  display: block;
+}
+.ph__manage-photo-caption {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  padding: 6px 12px;
+  background: rgba(38, 33, 26, 0.72);
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #F4EEE3;
+}
+@media (max-width: 860px) {
+  .ph__manage-grid { grid-template-columns: 1fr; }
+  .ph__manage-photo img { height: 200px; }
+}
+
+/* ---------- The Operating Standard — a substantive split section, not a
+   slogan card. "Run Today" and "Improve Tomorrow" are demonstrated as two
+   real, balanced responsibilities (grounded directly in the Playbook's own
+   "Leave It Better Than You Found It" principle), joined by "Always both"
+   as the unifying conclusion — this is the PRIMARY treatment of these
+   three phrases; the other two get much lighter treatment further down. ---------- */
+.ph__standard { background: var(--panel); padding: 64px 0 0; }
+.ph__standard-head { padding-bottom: 40px; }
+.ph__standard-eyebrow {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 10px;
+}
+.ph__standard-title {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 27px;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--ink);
+}
+.ph__standard-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--line);
+}
+.ph__standard-col {
+  padding: 32px 40px 40px 0;
+}
+.ph__standard-col + .ph__standard-col {
+  padding-left: 40px;
+  padding-right: 0;
+  border-left: 1px solid var(--line);
+}
+.ph__standard-col h3 {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  margin: 0 0 20px;
+  color: var(--ink);
+}
+.ph__standard-col ul { list-style: none; margin: 0; padding: 0; }
+.ph__standard-col li {
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--soft);
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+.ph__standard-col li:first-child { border-top: 0; padding-top: 0; }
+.ph__standard-bridge {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 26px 0;
+  border-top: 1px solid var(--line);
+}
+.ph__standard-bridge b {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--ink);
+  flex: none;
+}
+.ph__standard-bridge span {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--soft);
+}
+@media (max-width: 760px) {
+  .ph__standard-split { grid-template-columns: 1fr; }
+  .ph__standard-col { padding: 28px 0; }
+  .ph__standard-col + .ph__standard-col { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
+}
+
+/* ---------- Closing — the one permitted centered moment on the page.
+   "Every improvement compounds" carries the full closing weight, with a
+   short explanation instead of a bare slogan. ---------- */
+.ph__closing { background: var(--ink); color: #F4EEE3; padding: 64px 0; text-align: center; }
+.ph__closing-final {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 30px;
+  letter-spacing: -0.01em;
+  margin: 0 0 16px;
+}
+.ph__closing-final .dot { color: #CBA55F; }
+.ph__closing-explain {
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: #C9C0AF;
+  max-width: 46ch;
+  margin: 0 auto;
+}
+
+/* ---------- Footer: minimal, no CTA, no login button. "Leave it better
+   than you found it" lives here as a quiet easter egg, not a headline. ---------- */
+.ph__footer { padding-top: 56px; padding-bottom: 48px; }
+.ph__footer-logo { height: 33px; width: auto; display: block; margin-bottom: 18px; }
+.ph__footer-name { font-family: var(--font-body); font-size: 12.5px; font-weight: 700; color: var(--soft); margin-bottom: 6px; }
+.ph__footer-address { font-family: var(--font-body); font-size: 12px; line-height: 1.7; color: var(--muted); }
+.ph__footer-copyright { font-family: var(--font-body); font-size: 11px; color: var(--muted); margin-top: 18px; }
+.ph__footer-easteregg {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 14px;
+  opacity: 0.75;
+}
+
+@media (max-width: 640px) {
+  .ph__h1 { font-size: 33px; max-width: 100%; }
+  .ph__hero-sub { max-width: 100%; }
+  .ph__thesis-maxim { font-size: 23px; }
+  .ph__closing-final { font-size: 22px; }
+  .ph__standard-title { font-size: 21px; }
+  .ph__system .ph__inner { padding-left: 20px; }
+}

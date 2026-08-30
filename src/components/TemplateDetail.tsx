@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Template, TemplatePatch } from "../methodology/types";
-import type { ScopeType } from "../types";
+import type { ScopeType, WorkOwner } from "../types";
 import { RESP_PARTIES } from "../work-items/constants";
 
 const PRIORITIES = ["Critical", "High", "Medium", "Low"];
@@ -11,10 +11,11 @@ const empty: TemplatePatch = {
   go_live_gate: false, critical_path: false,
 };
 
-export function TemplateDetail({ template, workstreams, phases, onClose, onSave, onDelete, onDuplicate, onToggleArchive }: {
+export function TemplateDetail({ template, workstreams, phases, owners, onClose, onSave, onDelete, onDuplicate, onToggleArchive }: {
   template: Template | null;              // null = create new
   workstreams: string[];
   phases: string[];
+  owners: WorkOwner[]; // active roster; the template's current default owner is always shown too, even if inactive/removed
   onClose: () => void;
   onSave: (patch: TemplatePatch, id: string | null) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
@@ -25,6 +26,11 @@ export function TemplateDetail({ template, workstreams, phases, onClose, onSave,
   const [f, setF] = useState<TemplatePatch>(empty);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const ownerOptions = useMemo(() => {
+    const names = owners.map((o) => o.displayName);
+    return f.default_owner && !names.includes(f.default_owner) ? [f.default_owner, ...names] : names;
+  }, [owners, f.default_owner]);
 
   useEffect(() => {
     setError("");
@@ -108,7 +114,9 @@ export function TemplateDetail({ template, workstreams, phases, onClose, onSave,
               </select>
             </Lbl>
             <Lbl t="Default owner">
-              <input className="panel__input" value={f.default_owner ?? ""} onChange={(e) => set("default_owner", e.target.value)} />
+              <select className="panel__input" value={f.default_owner ?? ""} onChange={(e) => set("default_owner", e.target.value || null)}>
+                <option value="">—</option>{ownerOptions.map((o) => <option key={o}>{o}</option>)}
+              </select>
             </Lbl>
             <Lbl t="Due offset (days from go-live)">
               <input className="panel__input" type="number" value={f.due_offset_days ?? ""} onChange={(e) => set("due_offset_days", e.target.value === "" ? null : Number(e.target.value))} />

@@ -1,0 +1,65 @@
+/* Dashboard — an executive briefing, not a KPI grid. Metrics answer "what"
+   at a glance, in under ten seconds, with equal restrained weight; the
+   sentence beneath them answers "why" and "where to look." Uses existing
+   design tokens only; no new palette. Typography and whitespace carry the
+   hierarchy, not borders, boxes, or color. */
+
+.dash__err { font-size: 13px; color: var(--terra); background: rgba(165,98,74,0.08); border: 1px solid rgba(165,98,74,0.25); border-radius: 6px; padding: 9px 12px; margin: 22px 0 0; }
+.dash__loading { margin-top: 22px; font-size: 13px; color: var(--muted); }
+
+/* ---------- Hero: identity, the health metrics, then the interpretation ----------
+   Metrics answer "what" and come first, at equal weight — no single number
+   is the hero. The one sentence below them answers "why" and "where to
+   look"; it's interpretation of the metrics, not a competing headline. */
+.dash__hero { margin-top: 8px; }
+.dash__eyebrow { font-family: var(--font-display); font-size: 20px; font-weight: 500; color: var(--soft); margin: 0; }
+
+/* The health metrics: four equal, quiet figures — no card, no border, no
+   color-coding. A number and a caption, repeated, is the entire device. */
+.dash__stats { margin-top: 22px; display: flex; flex-wrap: wrap; gap: 44px; }
+.dash__stat-value { font-family: var(--font-display); font-size: 32px; font-weight: 500; color: var(--ink); line-height: 1.1; }
+.dash__stat-label { margin-top: 6px; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+
+/* Executive Assessment — the interpretation, set apart from the raw metrics
+   above and the action lists below by a hairline, not a card. The status is
+   the diagnosis and the primary focal point of this block: emphasis comes
+   from scale, weight, and space alone — plain ink, no colored badge, no
+   traffic light. It's the largest text on the page on purpose. */
+.dash__assessment { margin-top: 36px; padding: 32px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); max-width: 62ch; }
+.dash__assessment-label { font-family: var(--font-body); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.dash__assessment-level { margin-top: 14px; font-family: var(--font-display); font-size: 44px; font-weight: 600; letter-spacing: -0.01em; text-transform: uppercase; color: var(--ink); line-height: 1.1; }
+.dash__assessment-text { margin: 18px 0 0; font-size: 15px; line-height: 1.65; color: var(--soft); }
+
+/* ---------- Leadership content blocks ---------- */
+.dash__body { margin-top: 48px; max-width: 960px; }
+.dash__block { margin-top: 44px; }
+.dash__body > .dash__block:first-child { margin-top: 0; }
+.dash__block-title { font-family: var(--font-display); font-size: 17px; font-weight: 500; color: var(--ink); margin: 0 0 4px; }
+.dash__quiet { margin-top: 10px; font-size: 13.5px; color: var(--muted); }
+
+.dash__list { list-style: none; margin: 14px 0 0; padding: 0; }
+.dash__row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 14px; padding: 13px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+.dash__row:last-child { border-bottom: none; }
+.dash__row-desc { flex: 1 1 auto; min-width: 50%; color: var(--ink); }
+.dash__row-meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+/* Where help is needed: a ranked exposure list, not a performance
+   scoreboard — only owners with a genuine concentration appear at all. */
+.dash__ownerlist { margin-top: 14px; display: flex; flex-direction: column; gap: 16px; }
+.dash__ownerrow { display: grid; grid-template-columns: 150px 1fr 80px; align-items: center; gap: 16px; }
+.dash__ownername { font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.dash__ownertrack { height: 6px; border-radius: 999px; background: var(--panel); overflow: hidden; }
+.dash__ownerfill { height: 100%; background: var(--gold); border-radius: 999px; }
+.dash__ownercount { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; }
+
+.dash__empty { margin-top: 28px; border: 1px dashed var(--line); border-radius: var(--radius); background: var(--card); padding: 34px; display: flex; flex-direction: column; gap: 10px; }
+.dash__empty-head { font-family: var(--font-display); font-size: 18px; color: var(--ink); }
+.dash__empty-body { font-size: 13.5px; color: var(--soft); max-width: 62ch; line-height: 1.55; }
+
+@media (max-width: 640px) {
+  .dash__stats { gap: 24px 32px; }
+  .dash__stat-value { font-size: 26px; }
+  .dash__assessment-level { font-size: 32px; }
+  .dash__ownerrow { grid-template-columns: 1fr; gap: 6px; }
+  .dash__ownercount { text-align: left; }
+}

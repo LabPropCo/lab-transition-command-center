@@ -1,18 +1,26 @@
-import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
+import { createBrowserRouter, Outlet } from "react-router-dom";
 import type { ReactNode } from "react";
 import { AuthProvider } from "../auth/AuthProvider";
 import { TransitionProvider } from "../transitions/TransitionProvider";
 import { RequireAuth } from "./RequireAuth";
 import { AppShell } from "./AppShell";
 import { Login } from "../screens/Login";
+import { PublicHome } from "../screens/PublicHome";
 import { Screen } from "../screens/Screen";
+import { Dashboard } from "../screens/Dashboard";
+import { MyActions } from "../screens/MyActions";
+import { Roadmap } from "../screens/Roadmap";
 import { WorkItems } from "../screens/WorkItems";
+import { Vendors } from "../screens/Vendors";
+import { SyncReviewDemo } from "../screens/labos/SyncReviewDemo";
 import { AdminProvider } from "../admin/AdminProvider";
 import { RequireAdmin } from "../admin/RequireAdmin";
 import { AdminDashboard } from "../screens/admin/AdminDashboard";
 import { TransitionSettings } from "../screens/admin/TransitionSettings";
 import { MethodologyLibrary } from "../screens/admin/MethodologyLibrary";
 import { Properties } from "../screens/admin/Properties";
+import { Owners } from "../screens/admin/Owners";
+import { VendorTypes } from "../screens/admin/VendorTypes";
 import { NotFound } from "../screens/NotFound";
 import { SCREENS } from "../lib/nav";
 import { DevBanner } from "../components/DevBanner";
@@ -33,10 +41,20 @@ export const router = createBrowserRouter([
   {
     element: <RootProviders />,
     children: [
+      // Public marketing homepage — the only unauthenticated route besides
+      // /login. Deliberately a sibling of RequireAuth, not a descendant: the
+      // root path can only resolve one way, so the authenticated app's old
+      // "/" -> "/dashboard" redirect (below) is retired in favor of this.
+      { path: "/", element: <PublicHome /> },
       { path: "/login", element: <Login /> },
       {
         element: <RequireAuth />,
         children: [
+          // LabOS Milestone 1 — internal operational control surface only,
+          // not linked from any navigation. Runs the real ingestion pipeline
+          // against synthetic demo data (in-memory mock repository, no live
+          // Supabase connection) so its output can be visually verified.
+          { path: "labos/sync-review", element: <SyncReviewDemo /> },
           {
             element: (
               <TransitionProvider>
@@ -46,7 +64,6 @@ export const router = createBrowserRouter([
               </TransitionProvider>
             ),
             children: [
-              { index: true, element: <Navigate to="/dashboard" replace /> },
               // Admin area (platform-admin only). Additive routes; existing routes unchanged.
               {
                 path: "admin",
@@ -56,12 +73,19 @@ export const router = createBrowserRouter([
                   { path: "transition-settings", element: <TransitionSettings /> },
                   { path: "methodology", element: <MethodologyLibrary /> },
                   { path: "properties", element: <Properties /> },
+                  { path: "owners", element: <Owners /> },
+                  { path: "vendor-types", element: <VendorTypes /> },
                 ],
               },
               // The rest of the app's screens (admin handled above).
               ...Object.values(SCREENS).filter((s) => s.key !== "admin").map((s) => ({
                 path: s.path.replace(/^\//, ""),
-                element: s.key === "work-items" ? <WorkItems /> : <Screen k={s.key} />,
+                element: s.key === "work-items" ? <WorkItems />
+                  : s.key === "dashboard" ? <Dashboard />
+                  : s.key === "myactions" ? <MyActions />
+                  : s.key === "roadmap" ? <Roadmap />
+                  : s.key === "vendors" ? <Vendors />
+                  : <Screen k={s.key} />,
               })),
               { path: "*", element: <NotFound /> },
             ],
