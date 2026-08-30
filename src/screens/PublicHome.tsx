@@ -39,12 +39,12 @@ export function PublicHome() {
 
         <div className="ph__hero-evidence">
           <img
-            src="/photography/river-run-clubhouse.jpg"
-            alt="The River Run clubhouse, a Lab-managed community space"
+            src="/photography/river-run-exterior-a.jpg"
+            alt="River Run, a Lab-managed multifamily community, set above the river"
           />
           <div className="ph__hero-evidence-caption">
             <span className="dot" />
-            River Run &middot; Clubhouse
+            River Run &middot; Lab-Managed Community
           </div>
         </div>
 
@@ -144,10 +144,10 @@ export function PublicHome() {
             </ul>
             <div className="ph__manage-photo">
               <img
-                src="/photography/river-run-exterior-a.jpg"
-                alt="River Run, a Lab-managed multifamily community"
+                src="/photography/river-run-clubhouse.jpg"
+                alt="The River Run clubhouse, a Lab-managed community space"
               />
-              <div className="ph__manage-photo-caption">River Run &middot; Lab-Managed Community</div>
+              <div className="ph__manage-photo-caption">River Run &middot; Clubhouse</div>
             </div>
           </div>
         </div>
@@ -181,7 +181,7 @@ export function PublicHome() {
           </div>
           <div className="ph__standard-bridge">
             <b>Always both.</b>
-            <span>Every leader here carries two jobs at once — operate today's business, and improve tomorrow's. Neither is optional.</span>
+            <span>Every leader here carries two responsibilities: run today's business and improve how we operate tomorrow. Neither is optional.</span>
           </div>
         </div>
       </div>
