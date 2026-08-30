@@ -144,7 +144,7 @@ export function PublicHome() {
             </ul>
             <div className="ph__manage-photo">
               <img
-                src="/photography/river-run-exterior-b.jpg"
+                src="/photography/river-run-exterior-a.jpg"
                 alt="River Run, a Lab-managed multifamily community"
               />
               <div className="ph__manage-photo-caption">River Run &middot; Lab-Managed Community</div>
