@@ -1,10 +1,11 @@
-import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
+import { createBrowserRouter, Outlet } from "react-router-dom";
 import type { ReactNode } from "react";
 import { AuthProvider } from "../auth/AuthProvider";
 import { TransitionProvider } from "../transitions/TransitionProvider";
 import { RequireAuth } from "./RequireAuth";
 import { AppShell } from "./AppShell";
 import { Login } from "../screens/Login";
+import { PublicHome } from "../screens/PublicHome";
 import { Screen } from "../screens/Screen";
 import { Dashboard } from "../screens/Dashboard";
 import { MyActions } from "../screens/MyActions";
@@ -40,6 +41,11 @@ export const router = createBrowserRouter([
   {
     element: <RootProviders />,
     children: [
+      // Public marketing homepage — the only unauthenticated route besides
+      // /login. Deliberately a sibling of RequireAuth, not a descendant: the
+      // root path can only resolve one way, so the authenticated app's old
+      // "/" -> "/dashboard" redirect (below) is retired in favor of this.
+      { path: "/", element: <PublicHome /> },
       { path: "/login", element: <Login /> },
       {
         element: <RequireAuth />,
@@ -58,7 +64,6 @@ export const router = createBrowserRouter([
               </TransitionProvider>
             ),
             children: [
-              { index: true, element: <Navigate to="/dashboard" replace /> },
               // Admin area (platform-admin only). Additive routes; existing routes unchanged.
               {
                 path: "admin",
