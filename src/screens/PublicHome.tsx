@@ -37,7 +37,7 @@ const GOLF_TILES: CollageTile[] = [
 export function PublicHome() {
   usePageMeta(
     "The Lab Property Company",
-    "A multifamily property management company built on disciplined operations and continuous improvement. Designed to Perform."
+    "A multifamily and hospitality property management company built on disciplined operations and continuous improvement. Designed to Perform."
   );
   return (
     <div className="ph">
@@ -48,7 +48,7 @@ export function PublicHome() {
           <p className="ph__hero-eyebrow">Multifamily Property Management</p>
           <h1 className="ph__h1">Disciplined operations. Better outcomes.</h1>
           <p className="ph__hero-sub">
-            The Lab is a multifamily property management company where clear
+            The Lab is a multifamily and hospitality company where clear
             standards, accountable teams, and continuous improvement drive
             stronger property performance.
           </p>
