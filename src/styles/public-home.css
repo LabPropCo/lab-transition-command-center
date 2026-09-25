@@ -166,6 +166,61 @@
   .ph__loop-stage { border-top: 1px solid rgba(203, 165, 95, 0.5); }
 }
 
+/* ================= Portfolio collage: real evidence of the two lines of
+   business, directly under the hero. Two independently-gridded groups
+   (3 then 4) rather than one 7-cell grid, so neither ever produces an
+   orphaned tile at any width. Tile caption reuses the same dark
+   badge-over-photo pattern as the hero/manage-photo evidence above. ================= */
+.ph__collage { padding-top: 48px; padding-bottom: 48px; border-bottom: 1px solid var(--line); }
+.ph__collage-group + .ph__collage-group { margin-top: 40px; }
+.ph__collage-label {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 16px;
+}
+.ph__collage-grid { display: grid; gap: 20px; }
+.ph__collage-grid--3 { grid-template-columns: repeat(3, 1fr); }
+.ph__collage-grid--4 { grid-template-columns: repeat(4, 1fr); }
+.ph__collage-tile {
+  position: relative;
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+.ph__collage-tile img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+}
+a.ph__collage-tile img { transition: opacity 0.15s ease; }
+a.ph__collage-tile:hover img { opacity: 0.86; }
+.ph__collage-tile-name {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  padding: 6px 12px;
+  background: rgba(38, 33, 26, 0.72);
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #F4EEE3;
+}
+@media (max-width: 760px) {
+  .ph__collage-grid--3,
+  .ph__collage-grid--4 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+  .ph__collage-grid--3,
+  .ph__collage-grid--4 { grid-template-columns: 1fr; }
+}
+
 /* ================= The throughline: continues out of the hero's
    operating-loop band, connecting the sections that expand it into one
    system rather than isolated marketing blocks. ================= */
@@ -436,6 +491,37 @@
   .ph__standard-col + .ph__standard-col { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
 }
 
+/* ---------- /golf: four property sections, photo + setting copy. Reuses
+   the .ph__section eyebrow/title shell; alternates photo side each row for
+   rhythm, always photo-then-copy on mobile. ---------- */
+.ph__golf-property-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+.ph__golf-property--reverse .ph__golf-property-grid { direction: rtl; }
+.ph__golf-property--reverse .ph__golf-property-grid > * { direction: ltr; }
+.ph__golf-property-photo img {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+  display: block;
+}
+.ph__golf-property-copy p {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--soft);
+  margin: 0 0 14px;
+  max-width: 46ch;
+}
+.ph__golf-property-copy p:last-child { margin-bottom: 0; }
+@media (max-width: 760px) {
+  .ph__golf-property-grid { grid-template-columns: 1fr; direction: ltr; }
+  .ph__golf-property-photo img { height: 220px; }
+}
+
 /* ---------- Closing — the one permitted centered moment on the page.
    "Every improvement compounds" carries the full closing weight, with a
    short explanation instead of a bare slogan. ---------- */
@@ -463,6 +549,14 @@
 .ph__footer-logo { height: 33px; width: auto; display: block; margin-bottom: 18px; }
 .ph__footer-name { font-family: var(--font-body); font-size: 12.5px; font-weight: 700; color: var(--soft); margin-bottom: 6px; }
 .ph__footer-address { font-family: var(--font-body); font-size: 12px; line-height: 1.7; color: var(--muted); }
+.ph__footer-links { display: flex; gap: 18px; margin-top: 16px; }
+.ph__footer-links a {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--soft);
+}
+.ph__footer-links a:hover { color: var(--ink); }
 .ph__footer-copyright { font-family: var(--font-body); font-size: 11px; color: var(--muted); margin-top: 18px; }
 .ph__footer-easteregg {
   font-family: var(--font-display);

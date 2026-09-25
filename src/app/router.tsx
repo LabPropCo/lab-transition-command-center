@@ -6,6 +6,7 @@ import { RequireAuth } from "./RequireAuth";
 import { AppShell } from "./AppShell";
 import { Login } from "../screens/Login";
 import { PublicHome } from "../screens/PublicHome";
+import { PublicGolf } from "../screens/PublicGolf";
 import { Screen } from "../screens/Screen";
 import { Dashboard } from "../screens/Dashboard";
 import { MyActions } from "../screens/MyActions";
@@ -46,6 +47,7 @@ export const router = createBrowserRouter([
       // root path can only resolve one way, so the authenticated app's old
       // "/" -> "/dashboard" redirect (below) is retired in favor of this.
       { path: "/", element: <PublicHome /> },
+      { path: "/golf", element: <PublicGolf /> },
       { path: "/login", element: <Login /> },
       {
         element: <RequireAuth />,

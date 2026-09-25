@@ -1,4 +1,28 @@
 import "../styles/public-home.css";
+import { PublicHeader } from "../components/PublicHeader";
+import { PublicFooter } from "../components/PublicFooter";
+import { usePageMeta } from "../lib/usePageMeta";
+
+type CollageTile = {
+  slug: string;
+  name: string;
+  image: string;
+  alt: string;
+  href?: string;
+};
+
+const MULTIFAMILY_TILES: CollageTile[] = [
+  { slug: "union-505", name: "Union 505", image: "/photography/collage/union-505-exterior.jpg", alt: "Union 505 apartment exterior" },
+  { slug: "river-run", name: "River Run", image: "/photography/collage/river-run-collage.jpg", alt: "River Run apartment exterior" },
+  { slug: "zona-verde", name: "Zona Verde", image: "/photography/collage/zona-verde-interior.jpg", alt: "Zona Verde community interior" },
+];
+
+const GOLF_TILES: CollageTile[] = [
+  { slug: "tubac", name: "Tubac", image: "/photography/collage/tubac-aerial.jpg", alt: "Tubac desert landscape, aerial view", href: "/golf#tubac" },
+  { slug: "sedona", name: "Sedona", image: "/photography/collage/sedona-golf.jpg", alt: "Sedona red rock landscape", href: "/golf#sedona" },
+  { slug: "birdie-ranch", name: "Birdie Ranch", image: "/photography/collage/birdie-ranch.jpg", alt: "Birdie Ranch open ranch landscape", href: "/golf#birdie-ranch" },
+  { slug: "bison-golf-club", name: "Bison Golf Club", image: "/photography/collage/bison-golf-club.jpg", alt: "Bison Golf Club fairway", href: "/golf#bison-golf-club" },
+];
 
 // The public homepage at thelabpropco.com — the only unauthenticated route
 // besides /login. The hero is a complete composition of four connected
@@ -11,21 +35,14 @@ import "../styles/public-home.css";
 // Design System). Deliberately not a dashboard: no login button, no
 // metrics, no employee-tool surface.
 export function PublicHome() {
+  usePageMeta(
+    "The Lab Property Company",
+    "A multifamily property management company built on disciplined operations and continuous improvement. Designed to Perform."
+  );
   return (
     <div className="ph">
       <div className="ph__hero">
-        <div className="ph__inner ph__header">
-          <img
-            className="ph__logo"
-            src="/brand/lab-logo-reversed-white.svg"
-            alt="The Lab Property Company"
-          />
-          <ul className="ph__nav">
-            <li><a href="#operate">How We Operate</a></li>
-            <li><a href="#manage">What We Do</a></li>
-            <li><a href="#standard">The Standard</a></li>
-          </ul>
-        </div>
+        <PublicHeader />
 
         <div className="ph__inner ph__hero-primary">
           <p className="ph__hero-eyebrow">Multifamily Property Management</p>
@@ -60,6 +77,31 @@ export function PublicHome() {
           </div>
           <div className="ph__loop-stage">
             <p className="ph__loop-stage-label">Continuous Improvement</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="ph__inner ph__collage">
+        <div className="ph__collage-group">
+          <p className="ph__collage-label">Multifamily</p>
+          <div className="ph__collage-grid ph__collage-grid--3">
+            {MULTIFAMILY_TILES.map((tile) => (
+              <div className="ph__collage-tile" key={tile.slug}>
+                <img src={tile.image} alt={tile.alt} loading="lazy" />
+                <span className="ph__collage-tile-name">{tile.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="ph__collage-group">
+          <p className="ph__collage-label">Hospitality &amp; Golf</p>
+          <div className="ph__collage-grid ph__collage-grid--4">
+            {GOLF_TILES.map((tile) => (
+              <a className="ph__collage-tile" href={tile.href} key={tile.slug}>
+                <img src={tile.image} alt={tile.alt} loading="lazy" />
+                <span className="ph__collage-tile-name">{tile.name}</span>
+              </a>
+            ))}
           </div>
         </div>
       </div>
@@ -198,19 +240,7 @@ export function PublicHome() {
         </div>
       </div>
 
-      <div className="ph__inner ph__footer">
-        <img className="ph__footer-logo" src="/brand/lab-logo-primary-black.svg" alt="The Lab Property Company" />
-        <div className="ph__footer-name">The Lab Property Company LLC</div>
-        <div className="ph__footer-address">
-          2198 E. Camelback Rd., Suite 240
-          <br />
-          Phoenix, AZ 85016
-        </div>
-        <div className="ph__footer-copyright">
-          © {new Date().getFullYear()} The Lab Property Company LLC
-        </div>
-        <div className="ph__footer-easteregg">Leave it better than you found it.</div>
-      </div>
+      <PublicFooter />
     </div>
   );
 }
