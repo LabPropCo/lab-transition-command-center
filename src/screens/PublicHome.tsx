@@ -214,6 +214,7 @@ export function PublicHome() {
             Better standards create better actions. Better actions create
             stronger properties. Repeated consistently, the gains multiply.
           </p>
+          <a className="ph__btn" href="mailto:jking@labpropco.com">Contact Us</a>
         </div>
       </div>
 
