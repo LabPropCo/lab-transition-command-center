@@ -3,27 +3,6 @@ import { PublicHeader } from "../components/PublicHeader";
 import { PublicFooter } from "../components/PublicFooter";
 import { usePageMeta } from "../lib/usePageMeta";
 
-type CollageTile = {
-  slug: string;
-  name: string;
-  image: string;
-  alt: string;
-  href?: string;
-};
-
-const MULTIFAMILY_TILES: CollageTile[] = [
-  { slug: "union-505", name: "Union 505", image: "/photography/collage/union-505-exterior.jpg", alt: "Union 505 apartment exterior" },
-  { slug: "river-run", name: "River Run", image: "/photography/collage/river-run-collage.jpg", alt: "River Run apartment exterior" },
-  { slug: "zona-verde", name: "Zona Verde", image: "/photography/collage/zona-verde-interior.jpg", alt: "Zona Verde community interior" },
-];
-
-const GOLF_TILES: CollageTile[] = [
-  { slug: "tubac", name: "Tubac", image: "/photography/collage/tubac-aerial.jpg", alt: "Tubac desert landscape, aerial view", href: "/golf#tubac" },
-  { slug: "sedona", name: "Sedona", image: "/photography/collage/sedona-golf.jpg", alt: "Sedona red rock landscape", href: "/golf#sedona" },
-  { slug: "birdie-ranch", name: "Birdie Ranch", image: "/photography/collage/birdie-ranch.jpg", alt: "Birdie Ranch open ranch landscape", href: "/golf#birdie-ranch" },
-  { slug: "bison-golf-club", name: "Bison Golf Club", image: "/photography/collage/bison-golf-club.jpg", alt: "Bison Golf Club fairway", href: "/golf#bison-golf-club" },
-];
-
 // The public homepage at thelabpropco.com — the only unauthenticated route
 // besides /login. The hero is a complete composition of four connected
 // layers (header, positioning, property evidence, operating loop), and the
@@ -54,16 +33,39 @@ export function PublicHome() {
           </p>
         </div>
 
-        <div className="ph__hero-evidence">
-          <img
-            src="/photography/river-run-exterior-a.jpg"
-            alt="River Run, a Lab-managed multifamily community, set above the river"
+        <picture className="ph__hero-collage">
+          <source
+            media="(max-width: 767px)"
+            type="image/webp"
+            srcSet="/photography/hero/lab-hero-collage-mobile.webp"
+            width={1200}
+            height={1300}
           />
-          <div className="ph__hero-evidence-caption">
-            <span className="dot" />
-            River Run &middot; Lab-Managed Community
-          </div>
-        </div>
+          <source
+            media="(max-width: 767px)"
+            type="image/jpeg"
+            srcSet="/photography/hero/lab-hero-collage-mobile.jpg"
+            width={1200}
+            height={1300}
+          />
+          <source
+            type="image/webp"
+            srcSet="/photography/hero/lab-hero-collage-desktop-1440.webp 1440w, /photography/hero/lab-hero-collage-desktop-2880.webp 2880w"
+            sizes="100vw"
+            width={1440}
+            height={480}
+          />
+          <img
+            src="/photography/hero/lab-hero-collage-desktop-1440.jpg"
+            srcSet="/photography/hero/lab-hero-collage-desktop-1440.jpg 1440w, /photography/hero/lab-hero-collage-desktop-2880.jpg 2880w"
+            sizes="100vw"
+            width={1440}
+            height={480}
+            alt="Collage of The Lab properties: River Run, Zona Verde, The Parker on Black Oak, Sedona Golf Resort, Tubac Golf Resort & Spa, Bison Golf Club, and The Reserve at Steele Crossing."
+            loading="eager"
+            {...{ fetchpriority: "high" }}
+          />
+        </picture>
 
         <div className="ph__loop-band">
           <div className="ph__loop-stage">
@@ -77,31 +79,6 @@ export function PublicHome() {
           </div>
           <div className="ph__loop-stage">
             <p className="ph__loop-stage-label">Continuous Improvement</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="ph__inner ph__collage">
-        <div className="ph__collage-group">
-          <p className="ph__collage-label">Multifamily</p>
-          <div className="ph__collage-grid ph__collage-grid--3">
-            {MULTIFAMILY_TILES.map((tile) => (
-              <div className="ph__collage-tile" key={tile.slug}>
-                <img src={tile.image} alt={tile.alt} loading="lazy" />
-                <span className="ph__collage-tile-name">{tile.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="ph__collage-group">
-          <p className="ph__collage-label">Hospitality &amp; Golf</p>
-          <div className="ph__collage-grid ph__collage-grid--4">
-            {GOLF_TILES.map((tile) => (
-              <a className="ph__collage-tile" href={tile.href} key={tile.slug}>
-                <img src={tile.image} alt={tile.alt} loading="lazy" />
-                <span className="ph__collage-tile-name">{tile.name}</span>
-              </a>
-            ))}
           </div>
         </div>
       </div>

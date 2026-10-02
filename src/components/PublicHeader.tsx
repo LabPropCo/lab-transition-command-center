@@ -14,7 +14,7 @@ export function PublicHeader() {
         <li><a href="/#operate">How We Operate</a></li>
         <li><a href="/#manage">What We Do</a></li>
         <li><a href="/#standard">The Standard</a></li>
-        <li><a href="/golf">Golf</a></li>
+        <li><a href="/golf">Hospitality &amp; Golf</a></li>
       </ul>
     </div>
   );

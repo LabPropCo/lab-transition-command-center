@@ -11,7 +11,7 @@ export function PublicFooter() {
       </div>
       <nav className="ph__footer-links">
         <a href="/">Home</a>
-        <a href="/golf">Golf</a>
+        <a href="/golf">Hospitality &amp; Golf</a>
       </nav>
       <div className="ph__footer-copyright">
         © {new Date().getFullYear()} The Lab Property Company LLC

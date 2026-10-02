@@ -125,6 +125,16 @@
   .ph__hero-evidence img { height: 220px; object-position: center 42%; }
 }
 
+/* Homepage hero collage: a finished image with labels built in. Shown at
+   its natural aspect ratio (never cropped); the width/height attributes
+   reserve the space so nothing shifts on load. */
+.ph__hero-collage { display: block; }
+.ph__hero-collage img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 /* Layer 4 — the operating loop: a real sequence, not four feature cards.
    Grid, rules, and directional arrows, echoing the internal tools' own
    status/step language. This band is the throughline's point of origin —
@@ -164,61 +174,6 @@
   .ph__loop-band { grid-template-columns: 1fr; }
   .ph__loop-stage::after { content: none; }
   .ph__loop-stage { border-top: 1px solid rgba(203, 165, 95, 0.5); }
-}
-
-/* ================= Portfolio collage: real evidence of the two lines of
-   business, directly under the hero. Two independently-gridded groups
-   (3 then 4) rather than one 7-cell grid, so neither ever produces an
-   orphaned tile at any width. Tile caption reuses the same dark
-   badge-over-photo pattern as the hero/manage-photo evidence above. ================= */
-.ph__collage { padding-top: 48px; padding-bottom: 48px; border-bottom: 1px solid var(--line); }
-.ph__collage-group + .ph__collage-group { margin-top: 40px; }
-.ph__collage-label {
-  font-family: var(--font-body);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--gold);
-  margin: 0 0 16px;
-}
-.ph__collage-grid { display: grid; gap: 20px; }
-.ph__collage-grid--3 { grid-template-columns: repeat(3, 1fr); }
-.ph__collage-grid--4 { grid-template-columns: repeat(4, 1fr); }
-.ph__collage-tile {
-  position: relative;
-  display: block;
-  color: inherit;
-  text-decoration: none;
-}
-.ph__collage-tile img {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-  display: block;
-}
-a.ph__collage-tile img { transition: opacity 0.15s ease; }
-a.ph__collage-tile:hover img { opacity: 0.86; }
-.ph__collage-tile-name {
-  position: absolute;
-  left: 12px;
-  bottom: 12px;
-  padding: 6px 12px;
-  background: rgba(38, 33, 26, 0.72);
-  font-family: var(--font-body);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #F4EEE3;
-}
-@media (max-width: 760px) {
-  .ph__collage-grid--3,
-  .ph__collage-grid--4 { grid-template-columns: 1fr 1fr; }
-}
-@media (max-width: 480px) {
-  .ph__collage-grid--3,
-  .ph__collage-grid--4 { grid-template-columns: 1fr; }
 }
 
 /* ================= The throughline: continues out of the hero's
@@ -508,19 +463,62 @@ a.ph__collage-tile:hover img { opacity: 0.86; }
   object-fit: cover;
   display: block;
 }
-.ph__golf-property-copy p {
+.ph__golf-property-copy > p:not(.ph__section-eyebrow) {
   font-family: var(--font-body);
   font-size: 15px;
   line-height: 1.75;
   color: var(--soft);
-  margin: 0 0 14px;
+  margin: 0;
   max-width: 46ch;
 }
-.ph__golf-property-copy p:last-child { margin-bottom: 0; }
 @media (max-width: 760px) {
   .ph__golf-property-grid { grid-template-columns: 1fr; direction: ltr; }
   .ph__golf-property-photo img { height: 220px; }
 }
+
+/* "How We Run Golf": three short principles in a row. */
+.ph__golf-run-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+}
+.ph__golf-run-title {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  margin: 0 0 12px;
+  color: var(--ink);
+}
+.ph__golf-run-grid p {
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--soft);
+  margin: 0;
+}
+@media (max-width: 760px) {
+  .ph__golf-run-grid { grid-template-columns: 1fr; gap: 28px; }
+}
+
+/* Golf page hero headline runs longer than the homepage's. */
+.ph__h1--wide { max-width: 22ch; }
+
+/* Closing contact button, outlined in the same gold as the hero accents. */
+.ph__btn {
+  display: inline-block;
+  margin-top: 28px;
+  padding: 12px 28px;
+  border: 1px solid #CBA55F;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #F4EEE3;
+  text-decoration: none;
+}
+.ph__btn:hover { background: #CBA55F; color: var(--ink); }
 
 /* ---------- Closing — the one permitted centered moment on the page.
    "Every improvement compounds" carries the full closing weight, with a
