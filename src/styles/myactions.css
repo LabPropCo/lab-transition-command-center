@@ -1,0 +1,68 @@
+/* My Actions — mirrors the Dashboard's restrained editorial language
+   (typography and whitespace carry hierarchy, not cards/shadows/color).
+   .screen / .screen__title / .screen__deck come from app.css. */
+
+.ma__hero { margin-top: 8px; }
+.ma__filter { margin-top: 18px; font-size: 13px; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 8px 11px; }
+
+.ma__err { font-size: 13px; color: var(--terra); background: rgba(165,98,74,0.08); border: 1px solid rgba(165,98,74,0.25); border-radius: 6px; padding: 9px 12px; margin: 22px 0 0; }
+.ma__loading { margin-top: 22px; font-size: 13px; color: var(--muted); }
+.ma__empty { margin-top: 40px; font-size: 15px; color: var(--soft); }
+
+/* Four understated metrics — a number and a caption, nothing else. Each is
+   a real <button>: clicking scrolls to its section (or, if that section is
+   empty, gives a brief, subtle pulse instead of navigating nowhere). */
+.ma__stats { margin-top: 32px; padding-top: 22px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 44px; }
+.ma__stat { appearance: none; background: none; border: none; padding: 0; margin: 0; text-align: left; cursor: pointer; font: inherit; }
+.ma__stat-value { font-family: var(--font-display); font-size: 32px; font-weight: 500; color: var(--ink); line-height: 1.1; }
+.ma__stat-label { margin-top: 6px; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+@keyframes ma-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.ma__stat--pulse { animation: ma-pulse 0.6s ease; }
+/* Blocked stays engaged (not just a brief pulse) while its temporary
+   all-blocked view is open — an understated underline, no color/badge. */
+.ma__stat--active .ma__stat-label { text-decoration: underline; text-underline-offset: 3px; }
+
+.ma__blocked-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.ma__blocked-back { appearance: none; background: none; border: none; padding: 0; margin: 0; cursor: pointer; font: inherit; font-size: 13px; color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+.ma__blocked-back:hover { color: var(--ink); }
+
+/* Main list + a narrow operator sidebar — not a wider list. The sidebar
+   column only exists in the markup when it has something to show, so an
+   empty sidebar never reserves a gap of dead space either. */
+.ma__layout { margin-top: 48px; display: grid; grid-template-columns: minmax(0, 780px) 260px; gap: 64px; align-items: start; }
+
+.ma__group { margin-top: 44px; scroll-margin-top: 24px; }
+.ma__body > .ma__group:first-child, .ma__body > .ma__quiet--lead:first-child { margin-top: 0; }
+.ma__group-title { font-family: var(--font-display); font-size: 17px; font-weight: 500; color: var(--ink); margin: 0 0 4px; }
+.ma__quiet { margin-top: 10px; font-size: 13.5px; color: var(--muted); }
+.ma__quiet--lead { margin-top: 0; font-size: 15px; color: var(--soft); }
+
+.ma__list { list-style: none; margin: 14px 0 0; padding: 0; }
+.ma__row { padding: 14px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+.ma__row:last-child { border-bottom: none; }
+.ma__row-title { font-size: 14px; color: var(--ink); }
+.ma__row-scope { margin-top: 3px; font-size: 12px; color: var(--soft); }
+.ma__row-meta { margin-top: 6px; font-size: 12px; color: var(--muted); }
+
+/* Sidebar — quieter than the main list by default (smaller type, no
+   Fraunces headline anywhere), since it's supporting context, not a
+   second stream of tasks to work through. */
+.ma__sidebar { display: flex; flex-direction: column; gap: 40px; padding-top: 4px; }
+.ma__side-block { display: flex; flex-direction: column; }
+.ma__side-title { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.ma__side-list { list-style: none; margin: 12px 0 0; padding: 0; }
+.ma__side-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--ink); }
+.ma__side-row:last-child { border-bottom: none; }
+.ma__side-count { color: var(--muted); font-size: 12px; }
+.ma__side-list--quiet .ma__side-row { color: var(--soft); font-size: 12.5px; }
+
+@media (max-width: 860px) {
+  .ma__layout { grid-template-columns: 1fr; gap: 40px; }
+  .ma__sidebar { flex-direction: row; flex-wrap: wrap; gap: 32px; }
+  .ma__side-block { flex: 1 1 220px; }
+}
+
+@media (max-width: 640px) {
+  .ma__stats { gap: 24px 32px; }
+  .ma__stat-value { font-size: 26px; }
+}

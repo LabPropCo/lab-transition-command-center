@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTransition } from "../transitions/TransitionProvider";
-import { listWorkItems, updateWorkItem } from "../work-items/api";
+import { listWorkItems, updateWorkItem, listActiveOwners } from "../work-items/api";
 import type { WorkItem, WorkItemPatch } from "../work-items/types";
+import type { WorkOwner } from "../types";
 import { STATUSES, statusColor, priorityColor } from "../work-items/constants";
 import { WorkItemDetail } from "../components/WorkItemDetail";
 import { SCREENS } from "../lib/nav";
@@ -18,6 +19,7 @@ function overdue(w: WorkItem): boolean {
 export function WorkItems() {
   const { selected, properties, propertyFilter, setPropertyFilter } = useTransition();
   const [items, setItems] = useState<WorkItem[]>([]);
+  const [owners, setOwners] = useState<WorkOwner[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [q, setQ] = useState("");
@@ -27,21 +29,49 @@ export function WorkItems() {
   const [gateOnly, setGateOnly] = useState(false);
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "code", dir: 1 });
   const [openId, setOpenId] = useState<string | null>(null);
+  // Session-local only (no persisted-preference pattern exists in this app
+  // beyond the selected transition id) — resets to hidden on reload, same as
+  // every other filter on this screen.
+  const [showInactive, setShowInactive] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   const propName = useMemo(() => {
     const m = new Map(properties.map((p) => [p.id, p.name]));
     return (id: string | null) => (id ? m.get(id) ?? "Property" : "Shared");
   }, [properties]);
 
+  // Properties offered by the filter dropdown: active-only by default; once
+  // "Show inactive properties" is on, inactive ones are included and labeled.
+  const filterableProperties = useMemo(
+    () => (showInactive ? properties : properties.filter((p) => p.active)),
+    [properties, showInactive],
+  );
+
   useEffect(() => {
     if (!selected) { setItems([]); setLoading(false); return; }
     let active = true;
     setLoading(true); setErr("");
-    listWorkItems(selected.id)
+    listWorkItems(selected.id, { excludeInactiveProperties: !showInactive, includeArchived: showArchived })
       .then((rows) => { if (active) { setItems(rows); setLoading(false); } })
       .catch((e) => { if (active) { setErr(e.message ?? "Failed to load"); setLoading(false); } });
     return () => { active = false; };
-  }, [selected]);
+  }, [selected, showInactive, showArchived]);
+
+  // Don't leave the screen blank on an invisible selection: if the property
+  // currently filtered on drops out of the dropdown (toggle turned off while
+  // an inactive property was selected), fall back to "all".
+  useEffect(() => {
+    if (propertyFilter === "all" || propertyFilter === "shared") return;
+    if (!filterableProperties.some((p) => p.id === propertyFilter)) setPropertyFilter("all");
+  }, [filterableProperties, propertyFilter, setPropertyFilter]);
+
+  useEffect(() => {
+    let active = true;
+    listActiveOwners()
+      .then((o) => { if (active) setOwners(o); })
+      .catch((e) => console.error("[owners] load failed", e));
+    return () => { active = false; };
+  }, []);
 
   const workstreams = useMemo(() => Array.from(new Set(items.map((i) => i.workstream).filter(Boolean))) as string[], [items]);
   const phases = useMemo(() => {
@@ -106,7 +136,9 @@ export function WorkItems() {
         <select className="wi__sel" value={propertyFilter} onChange={(e) => setPropertyFilter(e.target.value)}>
           <option value="all">All properties</option>
           <option value="shared">Shared (transition-wide)</option>
-          {properties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          {filterableProperties.map((p) => (
+            <option key={p.id} value={p.id}>{p.active ? p.name : `${p.name} — Inactive`}</option>
+          ))}
         </select>
         <select className="wi__sel" value={fWs} onChange={(e) => setFWs(e.target.value)}>
           <option value="All">All workstreams</option>
@@ -123,6 +155,14 @@ export function WorkItems() {
         <label className="wi__gate">
           <input type="checkbox" checked={gateOnly} onChange={(e) => setGateOnly(e.target.checked)} />
           Go-live gates only
+        </label>
+        <label className="wi__gate">
+          <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} />
+          Show inactive properties
+        </label>
+        <label className="wi__gate">
+          <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+          Show archived
         </label>
       </div>
 
@@ -152,12 +192,16 @@ export function WorkItems() {
                     <span className="wi__flags">
                       {w.criticalPath && <span className="wi__flag wi__flag--crit">Critical path</span>}
                       {w.goLiveGate && <span className="wi__flag wi__flag--gate">Go-live gate</span>}
+                      {w.archivedAt && <span className="wi__flag wi__flag--gate">Archived</span>}
                     </span>
                   </td>
                   <td className="wi__td">
                     {w.scopeType === "transition"
                       ? <span className="wi__scope wi__scope--shared">Shared</span>
-                      : <span className="wi__scope wi__scope--prop">{propName(w.propertyId)}</span>}
+                      : <span className="wi__scope wi__scope--prop">
+                          {propName(w.propertyId)}
+                          {!w.propertyActive && <span className="wi__flag wi__flag--gate" style={{ marginLeft: 6 }}>Inactive</span>}
+                        </span>}
                   </td>
                   <td className="wi__td">{w.owner}</td>
                   <td className={"wi__td " + (overdue(w) ? "wi__overdue" : "wi__muted")}>
@@ -185,6 +229,7 @@ export function WorkItems() {
           allItems={items}
           transitionName={selected?.name ?? ""}
           propertyName={propName(open.propertyId)}
+          owners={owners}
           onClose={() => setOpenId(null)}
           onSave={(patch) => applyPatch(open.id, patch)}
         />

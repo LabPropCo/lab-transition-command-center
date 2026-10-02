@@ -1,0 +1,44 @@
+/* Vendors — mirrors the same restrained editorial language as My Actions /
+   Work Items (typography and whitespace carry hierarchy, not cards/shadows).
+   .screen / .screen__title / .screen__deck come from app.css. */
+
+.ven__hero { margin-top: 8px; }
+.ven__hero-actions { margin-top: 18px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.ven__filter { font-size: 13px; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 8px 11px; }
+.ven__import-btn { appearance: none; font: inherit; font-size: 13px; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 8px 14px; cursor: pointer; }
+.ven__import-btn:hover { border-color: var(--ink); }
+
+.ven__err { font-size: 13px; color: var(--terra); background: rgba(165,98,74,0.08); border: 1px solid rgba(165,98,74,0.25); border-radius: 6px; padding: 9px 12px; margin: 22px 0 0; }
+.ven__loading { margin-top: 22px; font-size: 13px; color: var(--muted); }
+.ven__empty { margin-top: 40px; font-size: 15px; color: var(--soft); }
+
+.ven__stats { margin-top: 32px; padding-top: 22px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 44px; }
+.ven__stat-value { font-family: var(--font-display); font-size: 32px; font-weight: 500; color: var(--ink); line-height: 1.1; }
+.ven__stat-label { margin-top: 6px; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+
+.ven__body { margin-top: 44px; max-width: 780px; }
+.ven__group { margin-top: 40px; }
+.ven__body > .ven__group:first-child { margin-top: 0; }
+.ven__group-title { font-family: var(--font-display); font-size: 17px; font-weight: 500; color: var(--ink); margin: 0 0 4px; }
+.ven__group--quiet .ven__group-title { font-family: inherit; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; user-select: none; }
+
+.ven__list { list-style: none; margin: 14px 0 0; padding: 0; }
+.ven__row { padding: 14px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+.ven__row:last-child { border-bottom: none; }
+.ven__row-title { font-size: 14px; color: var(--ink); }
+.ven__row-meta { margin-top: 3px; font-size: 12px; color: var(--soft); }
+.ven__row-activity { margin-top: 6px; font-size: 12px; color: var(--muted); display: flex; gap: 8px; }
+.ven__row-blocked { margin-top: 4px; font-size: 12px; color: var(--terra); }
+
+.ven__import-result { font-size: 14px; color: var(--ink); }
+.ven__import-list { margin-top: 16px; display: flex; flex-direction: column; gap: 14px; max-height: 50vh; overflow-y: auto; }
+.ven__import-row { border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+.ven__import-name { font-size: 14px; color: var(--ink); }
+.ven__import-notes { color: var(--soft); font-size: 13px; }
+.ven__import-match { margin-top: 6px; display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); }
+.ven__import-new { color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; }
+
+@media (max-width: 640px) {
+  .ven__stats { gap: 24px 32px; }
+  .ven__stat-value { font-size: 26px; }
+}

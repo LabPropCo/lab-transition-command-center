@@ -1,0 +1,254 @@
+-- ============================================================================
+-- 0016 · Fix: methodology synchronization never compared or applied
+-- completion_standard, so an edited "instructions / completion standard"
+-- field was silently invisible to sync_preview / apply_transition_sync,
+-- regardless of publish state (Bug: T003 completion_standard edit not
+-- applied by "Synchronize Arkansas").
+--
+-- Root cause (confirmed against live data, not assumed): synchronization
+-- already reads the current, live work_item_templates row — this was never
+-- a stale-version/draft-vs-published issue. The 'rename' category only ever
+-- compared/applied `description`; completion_standard was simply never
+-- part of that category's field list. Every other tracked field already
+-- matched between the template and the work item for the reported case.
+--
+-- Fix: fold completion_standard into the existing 'rename' (template-
+-- authored content) category, alongside description — same category, one
+-- row per differing field, no new sync category, no draft/published
+-- gating introduced. sync_fp's 'rename' fingerprint is widened to hash
+-- both fields together, so a deferral recorded before this change still
+-- correctly re-surfaces if either field changes again (the fingerprint's
+-- own documented guarantee — see 0010 §7 — otherwise a description-only
+-- deferral could silently swallow an unrelated completion_standard change
+-- once both fields shared one category).
+--
+-- Additive: work_item_templates.completion_standard and
+-- work_items.completion_standard already exist (0002); methodology_
+-- version_items.completion_standard already exists (0010) and is already
+-- populated by publish_methodology_version. No schema change — function
+-- bodies only.
+-- ============================================================================
+
+-- ---------- sync_fp: 'rename' now covers description + completion_standard ----------
+create or replace function public.sync_fp(p_change_type text, p_template_id uuid, p_go_live date)
+returns text language sql stable security definer set search_path = public as $$
+  select case p_change_type
+    when 'rename'   then md5(concat_ws('|', coalesce(t.description,''), coalesce(t.completion_standard,'')))
+    when 'metadata' then md5(concat_ws('|', coalesce(t.workstream,''), coalesce(t.phase,''),
+      coalesce(t.priority,''), coalesce(t.responsible_party,''), t.go_live_gate::text,
+      t.critical_path::text, coalesce(t.depends_on_code,'')))
+    when 'due'      then md5(coalesce((p_go_live + t.due_offset_days)::text,''))
+    else '' end
+  from public.work_item_templates t where t.id = p_template_id;
+$$;
+
+-- ---------- sync_preview: surface completion_standard deltas under 'rename' ----------
+create or replace function public.sync_preview(p_transition_id uuid)
+returns table(code text, property_id uuid, scope_type text, change_type text,
+              field text, old_value text, new_value text, work_item_id uuid, completed boolean, template_id uuid)
+language sql stable security definer set search_path = public as $$
+  with params as (select target_go_live_date as gl from public.transitions where id = p_transition_id),
+  tmpl as (select * from public.work_item_templates where not archived),
+  props as (select id from public.properties where transition_id = p_transition_id),
+  defr as (select template_id, change_type, fingerprint from public.transition_sync_deferrals where transition_id = p_transition_id),
+  expected as (
+    select t.id as template_id, t.code, null::uuid as property_id, t.scope_type, t.description,
+           t.completion_standard, t.workstream,
+           t.phase, t.priority, t.responsible_party, t.go_live_gate, t.critical_path, t.depends_on_code, t.due_offset_days
+      from tmpl t where t.scope_type = 'transition'
+    union all
+    select t.id, t.code, p.id, t.scope_type, t.description, t.completion_standard, t.workstream, t.phase, t.priority,
+           t.responsible_party, t.go_live_gate, t.critical_path, t.depends_on_code, t.due_offset_days
+      from tmpl t cross join props p where t.scope_type = 'property'
+  ),
+  wi as (select * from public.work_items where transition_id = p_transition_id),
+  matched as (
+    select e.*, w.id as wid, w.description w_desc, w.completion_standard w_cs, w.workstream w_ws, w.phase w_phase, w.priority w_pri,
+           w.responsible_party w_rp, w.go_live_gate w_gate, w.critical_path w_cp, w.depends_on_code w_dep,
+           w.due_date w_due, w.due_date_source w_dsrc, w.status w_status
+    from expected e join wi w on w.template_id = e.template_id and w.property_id is not distinct from e.property_id
+  )
+  -- ADD
+  select e.code, e.property_id, e.scope_type::text, 'add', null, null, e.description, null::uuid, false, e.template_id
+    from expected e
+    where not exists (select 1 from wi w where w.template_id = e.template_id and w.property_id is not distinct from e.property_id)
+  union all
+  -- RENAME / CONTENT (template-authored text — description and completion
+  -- standard; active only; not deferred). One row per differing field,
+  -- same shape as METADATA below, so the existing UI ("field: old → new")
+  -- renders either without change.
+  select m.code, m.property_id, m.scope_type::text, 'rename', f.field, f.oldv, f.newv, m.wid, false, m.template_id
+    from matched m, lateral (values
+      ('description', m.w_desc, m.description),
+      ('completion_standard', m.w_cs, m.completion_standard)
+    ) f(field, oldv, newv)
+    where f.oldv is distinct from f.newv and m.w_status <> 'Complete'
+      and not exists (select 1 from defr d where d.template_id = m.template_id and d.change_type = 'rename' and d.fingerprint = public.sync_fp('rename', m.template_id, (select gl from params)))
+  union all
+  -- METADATA (per field; active only; not deferred)
+  select m.code, m.property_id, m.scope_type::text, 'metadata', f.field, f.oldv, f.newv, m.wid, false, m.template_id
+    from matched m, lateral (values
+      ('workstream', m.w_ws, m.workstream),
+      ('phase', m.w_phase, m.phase),
+      ('priority', m.w_pri, m.priority),
+      ('responsible_party', m.w_rp, m.responsible_party),
+      ('go_live_gate', m.w_gate::text, m.go_live_gate::text),
+      ('critical_path', m.w_cp::text, m.critical_path::text),
+      ('depends_on_code', m.w_dep, m.depends_on_code)
+    ) f(field, oldv, newv)
+    where f.oldv is distinct from f.newv and m.w_status <> 'Complete'
+      and not exists (select 1 from defr d where d.template_id = m.template_id and d.change_type = 'metadata' and d.fingerprint = public.sync_fp('metadata', m.template_id, (select gl from params)))
+  union all
+  -- DUE (methodology-sourced only; manual overrides protected; not deferred)
+  select m.code, m.property_id, m.scope_type::text, 'due', 'due_date', m.w_due::text,
+         ((select gl from params) + m.due_offset_days)::text, m.wid, false, m.template_id
+    from matched m
+    where m.due_offset_days is not null and (select gl from params) is not null
+      and m.w_dsrc = 'methodology' and m.w_status <> 'Complete'
+      and m.w_due is distinct from ((select gl from params) + m.due_offset_days)
+      and not exists (select 1 from defr d where d.template_id = m.template_id and d.change_type = 'due' and d.fingerprint = public.sync_fp('due', m.template_id, (select gl from params)))
+  union all
+  -- SKIP (completed with any delta -> protected). Field list intentionally
+  -- unchanged from 0010 — completed-item skip behavior must not change as
+  -- part of this fix; completed work is already fully protected from
+  -- being written by the guards in apply_transition_sync regardless of
+  -- whether it also shows up here.
+  select m.code, m.property_id, m.scope_type::text, 'skip', null, null, 'completed — protected', m.wid, true, m.template_id
+    from matched m
+    where m.w_status = 'Complete' and (
+      m.description is distinct from m.w_desc or m.workstream is distinct from m.w_ws or
+      m.phase is distinct from m.w_phase or m.priority is distinct from m.w_pri or
+      m.responsible_party is distinct from m.w_rp or m.go_live_gate is distinct from m.w_gate or
+      m.critical_path is distinct from m.w_cp or m.depends_on_code is distinct from m.w_dep)
+  union all
+  -- CONFLICT (scope mismatch for same immutable template)
+  select t.code, w.property_id, t.scope_type::text, 'conflict', 'scope_type',
+         (case when w.property_id is null then 'transition' else 'property' end), t.scope_type::text, w.id, (w.status='Complete'), t.id
+    from tmpl t join wi w on w.template_id = t.id
+    where (t.scope_type = 'transition' and w.property_id is not null)
+       or (t.scope_type = 'property'   and w.property_id is null)
+  union all
+  -- ARCHIVED / ORPHANED (template archived or deleted; work retained, never touched) (#4)
+  select w.code, w.property_id, w.scope_type::text, 'archived', null, null,
+         (case when t.id is null then 'template deleted' else 'template archived' end), w.id, (w.status='Complete'), w.template_id
+    from wi w left join public.work_item_templates t on t.id = w.template_id
+    where t.id is null or t.archived;
+$$;
+
+-- ---------- apply_transition_sync: 'rename' now applies both fields ----------
+create or replace function public.apply_transition_sync(
+  p_transition_id uuid,
+  p_add boolean default true,
+  p_rename boolean default false,
+  p_metadata boolean default false,
+  p_due boolean default false,
+  p_skip_completed boolean default true)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare added int := 0; renamed int := 0; updated int := 0; dued int := 0;
+        actor uuid := auth.uid(); actor_em text; v_go_live date;
+begin
+  if not public.is_platform_admin() then raise exception 'Only a platform admin may synchronize a transition'; end if;
+  select email into actor_em from public.profiles where id = actor;
+  select target_go_live_date into v_go_live from public.transitions where id = p_transition_id;
+
+  if p_add then
+    select public.instantiate_transition_work_items(p_transition_id) into added;
+  end if;
+
+  if p_rename then
+    with upd as (
+      update public.work_items w set description = t.description, completion_standard = t.completion_standard
+        from public.work_item_templates t
+        where w.transition_id = p_transition_id and w.template_id = t.id and not t.archived
+          and (w.description is distinct from t.description or w.completion_standard is distinct from t.completion_standard)
+          and (not p_skip_completed or w.status <> 'Complete')
+          and not exists (select 1 from public.transition_sync_deferrals d
+                          where d.transition_id = p_transition_id and d.template_id = t.id and d.change_type = 'rename'
+                            and d.fingerprint = public.sync_fp('rename', t.id, v_go_live))
+        returning w.id)
+    select count(*) into renamed from upd;
+  end if;
+
+  if p_metadata then
+    with upd as (
+      update public.work_items w
+        set workstream = t.workstream, phase = t.phase, phase_order = t.phase_order,
+            priority = t.priority, responsible_party = t.responsible_party,
+            go_live_gate = t.go_live_gate, critical_path = t.critical_path,
+            stage = t.stage, depends_on_code = t.depends_on_code, sort_order = t.sort_order
+        from public.work_item_templates t
+        where w.transition_id = p_transition_id and w.template_id = t.id and not t.archived
+          and (not p_skip_completed or w.status <> 'Complete')
+          and not exists (select 1 from public.transition_sync_deferrals d
+                          where d.transition_id = p_transition_id and d.template_id = t.id and d.change_type = 'metadata'
+                            and d.fingerprint = public.sync_fp('metadata', t.id, v_go_live))
+          and (w.workstream is distinct from t.workstream or w.phase is distinct from t.phase
+            or w.priority is distinct from t.priority or w.responsible_party is distinct from t.responsible_party
+            or w.go_live_gate is distinct from t.go_live_gate or w.critical_path is distinct from t.critical_path
+            or w.depends_on_code is distinct from t.depends_on_code)
+        returning w.id)
+    select count(*) into updated from upd;
+  end if;
+
+  if p_due and v_go_live is not null then
+    with upd as (
+      update public.work_items w set due_date = v_go_live + t.due_offset_days
+        from public.work_item_templates t
+        where w.transition_id = p_transition_id and w.template_id = t.id and not t.archived
+          and t.due_offset_days is not null and w.due_date_source = 'methodology'   -- never manual overrides
+          and (not p_skip_completed or w.status <> 'Complete')
+          and w.due_date is distinct from (v_go_live + t.due_offset_days)
+          and not exists (select 1 from public.transition_sync_deferrals d
+                          where d.transition_id = p_transition_id and d.template_id = t.id and d.change_type = 'due'
+                            and d.fingerprint = public.sync_fp('due', t.id, v_go_live))
+        returning w.id)
+    select count(*) into dued from upd;
+  end if;
+
+  update public.transitions
+     set methodology_version_id = (select id from public.methodology_versions where is_current limit 1)
+   where id = p_transition_id;
+
+  -- Only record an audit entry when something actually changed; a no-op sync is silent.
+  if (added + renamed + updated + dued) > 0 then
+    insert into public.admin_audit_log(entity_type, entity_id, actor_id, actor_email, field, old_value, new_value)
+    values ('transition_sync', p_transition_id, actor, actor_em, 'synchronize', null,
+            format('added=%s renamed=%s updated=%s due=%s', added, renamed, updated, dued));
+  end if;
+
+  return jsonb_build_object('added', added, 'renamed', renamed, 'updated', updated, 'due', dued);
+end $$;
+
+-- ---------- methodology_diff: include completion_standard so publish-time ----------
+-- change counts and history accurately reflect edits to that field.
+create or replace function public.methodology_diff(p_from uuid)
+returns table(code text, change_type text, field text, old_value text, new_value text)
+language sql stable security definer set search_path = public as $$
+  with snap as (select * from public.methodology_version_items where version_id = p_from),
+       cur  as (select * from public.work_item_templates)
+  select c.code, 'added', null, null, c.description
+    from cur c left join snap s on s.template_id = c.id
+    where s.template_id is null and not c.archived
+  union all
+  select s.code, 'removed', null, s.description, null
+    from snap s left join cur c on c.id = s.template_id
+    where c.id is null or c.archived
+  union all
+  select c.code, 'changed', f.field, f.oldv, f.newv
+  from cur c join snap s on s.template_id = c.id and not c.archived,
+  lateral (values
+    ('description', s.description, c.description),
+    ('completion_standard', s.completion_standard, c.completion_standard),
+    ('code', s.code, c.code),
+    ('scope_type', s.scope_type::text, c.scope_type::text),
+    ('workstream', s.workstream, c.workstream),
+    ('phase', s.phase, c.phase),
+    ('priority', s.priority, c.priority),
+    ('responsible_party', s.responsible_party, c.responsible_party),
+    ('go_live_gate', s.go_live_gate::text, c.go_live_gate::text),
+    ('critical_path', s.critical_path::text, c.critical_path::text),
+    ('depends_on_code', s.depends_on_code, c.depends_on_code),
+    ('due_offset_days', s.due_offset_days::text, c.due_offset_days::text)
+  ) as f(field, oldv, newv)
+  where f.oldv is distinct from f.newv;
+$$;

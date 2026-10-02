@@ -3,18 +3,33 @@
 .app { display: grid; grid-template-columns: var(--sidebar-w) 1fr; min-height: 100vh; }
 
 /* ---------- Sidebar ---------- */
+/* A deliberate rhythm, not one repeated gap: a large pause separates brand,
+   identity, and navigation as distinct ideas; a medium pause separates nav
+   groups within navigation; a small pause separates rows within a group. */
 .sidebar {
   background: var(--panel);
   border-right: 1px solid var(--line);
-  padding: 22px 14px 28px;
-  display: flex; flex-direction: column; gap: 26px;
+  padding: 30px 18px 28px;
+  display: flex; flex-direction: column; gap: 30px;
   position: sticky; top: 0; height: 100vh; overflow-y: auto;
 }
-.brand { padding: 4px 6px 0; }
-.brand__mark { font-family: var(--font-display); font-weight: 500; font-size: 26px; letter-spacing: -0.01em; color: var(--ink); line-height: 1; }
+.brand { padding: 2px 8px 0; }
+.brand__mark { font-family: var(--font-display); font-weight: 500; font-size: 25px; letter-spacing: -0.01em; color: var(--ink); line-height: 1; }
 .brand__mark span { color: var(--gold); }
 .brand__sub { margin-top: 8px; font-size: 9.5px; letter-spacing: 0.18em; color: var(--muted); text-transform: uppercase; font-weight: 600; }
 
+/* The one identity card in the shell: which client, which transition, how
+   much runway — stated once, so nothing else in the chrome has to repeat it. */
+.sidebar__identity { display: flex; flex-direction: column; gap: 16px; }
+.sidebar__rule { height: 1px; background: var(--line); margin: 0 2px; }
+.active-transition { padding: 0 8px; display: flex; flex-direction: column; }
+.active-transition__logo { height: 22px; width: auto; max-width: 130px; object-fit: contain; margin-bottom: 10px; border-radius: 4px; }
+.active-transition__label { font-size: 9.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+.active-transition__name { margin-top: 5px; font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--ink); line-height: 1.25; }
+.active-transition__client { margin-top: 2px; font-size: 12px; color: var(--soft); }
+.active-transition__countdown { margin-top: 7px; font-size: 11.5px; color: var(--muted); }
+
+.sidebar__nav { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; }
 .nav__group { display: flex; flex-direction: column; gap: 2px; }
 .nav__label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 0 8px 6px; }
 .nav__item {
@@ -33,21 +48,23 @@
 .sidebar__spacer { flex: 1; }
 
 /* ---------- Top bar ---------- */
+/* A plain utility strip — switch transitions when there's a choice, filter
+   by property, sign out. The active transition's identity lives in the
+   sidebar now, so nothing here competes with it. */
 .main { display: flex; flex-direction: column; min-width: 0; }
 .topbar {
-  min-height: var(--topbar-h);
+  min-height: 60px;
   border-bottom: 1px solid var(--line);
-  padding: 18px 34px; background: var(--paper);
+  padding: 14px 34px; background: var(--paper);
   display: flex; align-items: center; justify-content: space-between; gap: 20px;
   position: sticky; top: 0; z-index: 5;
 }
-.topbar__prop { font-family: var(--font-display); font-size: 21px; font-weight: 500; color: var(--ink); line-height: 1.15; }
-.topbar__client { font-size: 12px; color: var(--muted); margin-top: 3px; }
-.chip { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; color: var(--soft); background: var(--card); border: 1px solid var(--line); padding: 7px 13px; border-radius: 999px; }
-.chip__dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); }
+.topbar__status { font-size: 13px; color: var(--soft); }
+.topbar__status--muted { color: var(--muted); }
+.topbar__status--err { color: var(--terra); }
 
 /* ---------- Screen frame ---------- */
-.screen { padding: 30px 34px 60px; max-width: 1180px; }
+.screen { padding: 40px 44px 72px; max-width: 1180px; }
 .screen__title { font-family: var(--font-display); font-size: 30px; font-weight: 500; letter-spacing: -0.015em; color: var(--ink); }
 .screen__deck { margin-top: 6px; font-size: 14px; color: var(--soft); max-width: 60ch; }
 
@@ -92,20 +109,14 @@
 .bypasserr__hint { font-size: 12.5px; color: var(--muted); margin: 14px 0 0; }
 .bypasserr__hint code { font-size: 11.5px; background: rgba(0,0,0,0.05); padding: 1px 5px; border-radius: 3px; }
 
-/* ---------- Top bar: transition switcher ---------- */
+/* ---------- Top bar: transition switcher (only shown when there's a choice) ---------- */
 .topbar__left { min-width: 0; }
-.topbar__tsel { font-family: var(--font-display); font-size: 20px; font-weight: 500; color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 2px 6px; margin-left: -6px; cursor: pointer; }
-.topbar__tsel:hover { border-color: var(--line); }
+.topbar__tsel { font-size: 13px; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 8px 11px; cursor: pointer; }
 
 /* ---------- Load/error states ---------- */
-.topbar__prop--muted { color: var(--muted); font-weight: 400; }
-.topbar__prop--err { color: var(--terra); }
 .loadbar { display: flex; align-items: center; gap: 12px; padding: 10px 20px; background: rgba(165,98,74,0.10);
   border-bottom: 1px solid var(--line); color: var(--ink); font-size: 13px; }
 .loadbar__msg { flex: 1; line-height: 1.4; }
 .loadbar__retry { flex: none; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 6px;
   border: 1px solid var(--terra); color: var(--terra); background: transparent; cursor: pointer; }
 .loadbar__retry:hover { background: var(--terra); color: var(--paper); }
-
-/* ---------- Transition logo in the top bar ---------- */
-.topbar__logo { height: 28px; width: auto; max-width: 120px; object-fit: contain; margin-right: 10px; border-radius: 4px; vertical-align: middle; }

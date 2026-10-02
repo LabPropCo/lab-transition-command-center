@@ -1,16 +1,20 @@
 import { supabase } from "../lib/supabase";
 import type { WorkItem, WorkItemPatch } from "./types";
+import type { WorkOwner } from "../types";
 import { DEMO_MODE } from "../demo/config";
 
 const COLS =
   "id,transition_id,property_id,scope_type,code,sort_order,phase,phase_order,workstream,sub_workstream," +
   "description,completion_standard,owner,responsible_party,priority,go_live_gate,critical_path,stage," +
-  "gate_group,depends_on_code,start_date,due_date,status,notes,dropbox_link,completed_at,updated_at,updated_by";
+  "gate_group,depends_on_code,start_date,due_date,status,notes,dropbox_link,completed_at,updated_at,updated_by," +
+  "property_active,archived_at";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 function mapRow(r: any): WorkItem {
   return {
-    id: r.id, transitionId: r.transition_id, propertyId: r.property_id, scopeType: r.scope_type,
+    id: r.id, transitionId: r.transition_id, propertyId: r.property_id, propertyActive: r.property_active ?? true,
+    archivedAt: r.archived_at ?? null,
+    scopeType: r.scope_type,
     code: r.code, sortOrder: r.sort_order, phase: r.phase, phaseOrder: r.phase_order,
     workstream: r.workstream, subWorkstream: r.sub_workstream, description: r.description,
     completionStandard: r.completion_standard, owner: r.owner, responsibleParty: r.responsible_party,
@@ -22,13 +26,96 @@ function mapRow(r: any): WorkItem {
 }
 
 // List all work items in a transition (RLS scopes to what the user may see).
-export async function listWorkItems(transitionId: string): Promise<WorkItem[]> {
-  if (DEMO_MODE) { const s = await import("../demo/store"); return s.demoList(transitionId); }
+// Reads from the work_items_with_property_status view (0022), which left-joins
+// properties and exposes property_active (always true for shared/transition-
+// scoped items, since property_id is null there) and the raw archived_at column.
+//
+// The two filters default in OPPOSITE directions, each matching what its own
+// sprint required:
+//  - excludeInactiveProperties defaults to false (include everything) — Sprint
+//    18.4 only wanted Master Work Items itself to opt into hiding; Dashboard/
+//    Roadmap, which call this with no options, must see exactly what they saw
+//    before that sprint.
+//  - includeArchived defaults to false (exclude archived work items) — Sprint
+//    18.5 explicitly requires archived items hidden from "normal counts,
+//    filters, dashboard operational metrics, or roadmap views unless those
+//    screens explicitly opt in" — so every caller gets this exclusion for
+//    free, and only Master Work Items' "Show archived" toggle opts back in.
+export async function listWorkItems(
+  transitionId: string,
+  opts?: { excludeInactiveProperties?: boolean; includeArchived?: boolean },
+): Promise<WorkItem[]> {
+  if (DEMO_MODE) {
+    const s = await import("../demo/store");
+    return s.demoList(transitionId, opts?.excludeInactiveProperties ?? false, opts?.includeArchived ?? false);
+  }
   if (!supabase) return [];
-  const { data, error } = await supabase
-    .from("work_items").select(COLS).eq("transition_id", transitionId).order("sort_order");
+  let query = supabase
+    .from("work_items_with_property_status")
+    .select(COLS)
+    .eq("transition_id", transitionId);
+  if (opts?.excludeInactiveProperties) query = query.eq("property_active", true);
+  if (!opts?.includeArchived) query = query.is("archived_at", null);
+  const { data, error } = await query.order("sort_order");
   if (error) throw error;
   return (data ?? []).map(mapRow);
+}
+
+// Work items across every listed transition, in one round trip — for My
+// Actions, which (per its own header) aggregates "across active
+// transitions" rather than the single currently-selected one every other
+// screen uses. RLS (can_access_work_item) still applies per row, so this
+// only ever returns items the caller could already see one transition at a
+// time; it's a convenience for fetching them together, not a wider grant.
+export async function listWorkItemsForTransitions(transitionIds: string[]): Promise<WorkItem[]> {
+  if (transitionIds.length === 0) return [];
+  if (DEMO_MODE) {
+    const s = await import("../demo/store");
+    const lists = await Promise.all(transitionIds.map((id) => s.demoList(id)));
+    return lists.flat();
+  }
+  if (!supabase) return [];
+  // Reads from the same view as listWorkItems (not the base table — COLS
+  // includes property_active/archived_at, which only exist there) and
+  // excludes archived work items by default, matching every other caller.
+  const { data, error } = await supabase
+    .from("work_items_with_property_status").select(COLS).in("transition_id", transitionIds)
+    .is("archived_at", null).order("sort_order");
+  if (error) throw error;
+  return (data ?? []).map(mapRow);
+}
+
+// The exact string My Actions must match against `work_items.owner` to find
+// "my" items. Calls the same server-side function
+// (current_user_display = coalesce(profiles.full_name, profiles.email))
+// migration 0011 uses to default a new item's owner — so the client's
+// matching logic can never drift from what the server would have assigned.
+// Returns null if there's no profile row / no auth context; callers should
+// treat that as "nothing can be matched," not as an error.
+export async function getCurrentUserDisplayName(): Promise<string | null> {
+  if (DEMO_MODE) {
+    const s = await import("../demo/store");
+    return s.demoOwners().find((o) => o.active)?.displayName ?? null;
+  }
+  if (!supabase) return null;
+  const { data, error } = await supabase.rpc("current_user_display");
+  if (error) throw error;
+  return (data as string | null) ?? null;
+}
+
+// Active owners for the Owner dropdown (Work Items + Methodology templates).
+// Readable by any authenticated user (RLS: work_owners_read, 0015).
+export async function listActiveOwners(): Promise<WorkOwner[]> {
+  if (DEMO_MODE) { const s = await import("../demo/store"); return s.demoOwners().filter((o) => o.active); }
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("work_owners").select("id,display_name,active,sort_order")
+    .eq("active", true)
+    .order("sort_order", { ascending: true, nullsFirst: false })
+    .order("display_name", { ascending: true });
+  if (error) throw error;
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  return (data ?? []).map((r: any) => ({ id: r.id, displayName: r.display_name, active: r.active, sortOrder: r.sort_order }));
 }
 
 export async function updateWorkItem(id: string, patch: WorkItemPatch): Promise<WorkItem> {
@@ -36,8 +123,13 @@ export async function updateWorkItem(id: string, patch: WorkItemPatch): Promise<
   if (Object.prototype.hasOwnProperty.call(patch, "due_date")) patch = { ...patch, due_date_source: "manual" };
   if (DEMO_MODE) { const s = await import("../demo/store"); return s.demoUpdate(id, patch); }
   if (!supabase) throw new Error("Backend not configured");
+  // Must UPDATE the base table (the view isn't writable), then re-select from
+  // the view for the fresh row — property_active/archived_at are view-only
+  // computed columns, so .select(COLS) straight off the UPDATE would fail.
+  const { error: updateError } = await supabase.from("work_items").update(patch).eq("id", id);
+  if (updateError) throw updateError;
   const { data, error } = await supabase
-    .from("work_items").update(patch).eq("id", id).select(COLS).single();
+    .from("work_items_with_property_status").select(COLS).eq("id", id).single();
   if (error) throw error;
   return mapRow(data);
 }

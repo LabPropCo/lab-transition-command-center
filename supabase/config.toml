@@ -2,6 +2,14 @@
 # dashboard. The invite-only posture is expressed here AND in the dashboard.
 project_id = "lab-tcc"
 
+# labos is a separate module/schema (see docs/RIVER-RUN-INGESTION-ARCHITECTURE.md,
+# Section 2d) sharing this project — must be exposed for supabase-js to reach it
+# at all. NOT yet mirrored to the production project's dashboard setting; that's
+# a production config change requiring the standard disclosure + your approval
+# before it's made there.
+[api]
+schemas = ["public", "labos", "graphql_public"]
+
 [auth]
 site_url = "http://localhost:5173"
 additional_redirect_urls = ["http://localhost:5173"]
