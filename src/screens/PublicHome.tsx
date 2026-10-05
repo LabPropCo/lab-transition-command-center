@@ -118,7 +118,7 @@ export function PublicHome() {
           <p className="ph__section-eyebrow">How We Operate</p>
           <h2 className="ph__section-title">The Operating Loop, in Practice</h2>
           <p className="ph__section-deck">
-            The same four stages from above — what each one looks like on a
+            The same four stages from above: what each one looks like on a
             real property, and the result it's built to produce.
           </p>
           <div className="ph__loop-expand">
@@ -139,7 +139,7 @@ export function PublicHome() {
             </div>
             <div className="ph__loop-expand-row">
               <span className="stage">Continuous Improvement</span>
-              <span className="detail">No process is ever final — we test, measure, and refine on a fixed rhythm.</span>
+              <span className="detail">No process is ever final. We test, measure, and refine on a fixed rhythm.</span>
               <span className="produces">Improved performance</span>
             </div>
           </div>
