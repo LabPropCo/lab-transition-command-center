@@ -215,6 +215,14 @@
   max-width: 14ch;
 }
 .ph__thesis-maxim .dot { color: var(--gold); }
+
+/* Owner statement: a continuation of the thesis, same row, type and width. */
+.ph__owner {
+  padding-top: 52px;
+  padding-bottom: 56px;
+  border-bottom: 1px solid var(--line);
+}
+.ph__owner-title { max-width: 20ch; }
 .ph__thesis-explain p {
   font-family: var(--font-body);
   font-size: 15px;
@@ -459,8 +467,7 @@
 .ph__golf-property--reverse .ph__golf-property-grid > * { direction: ltr; }
 .ph__golf-property-photo img {
   width: 100%;
-  height: 280px;
-  object-fit: cover;
+  height: auto;
   display: block;
 }
 .ph__golf-property-copy > p:not(.ph__section-eyebrow) {
@@ -473,7 +480,6 @@
 }
 @media (max-width: 760px) {
   .ph__golf-property-grid { grid-template-columns: 1fr; direction: ltr; }
-  .ph__golf-property-photo img { height: 220px; }
 }
 
 /* "How We Run Golf": three short principles in a row. */

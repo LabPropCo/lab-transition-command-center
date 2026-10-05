@@ -20,11 +20,11 @@ const PROPERTIES: GolfProperty[] = [
     slug: "tubac",
     name: "Tubac Golf Resort & Spa",
     location: "Tubac, Arizona",
-    image: "Tubac_Bedroom",
-    imageWidth: 1280,
-    imageHeight: 853,
+    image: "Tubac_Golf_Resort--8",
+    imageWidth: 1600,
+    imageHeight: 940,
     imagePosition: "center center",
-    alt: "Tubac guest room with fireplace",
+    alt: "Tree-lined fairway at Tubac Golf Resort & Spa with mountains behind",
     copy: "Golf in Tubac starts with a ranch. The land traces back to a 1789 Spanish land grant, and the resort has welcomed guests since 1959. Today it's 27 holes in the Santa Cruz Valley, 98 hacienda-style rooms, and a full-service spa. And yes, it's the course from Tin Cup.",
   },
   {
@@ -42,11 +42,11 @@ const PROPERTIES: GolfProperty[] = [
     slug: "birdie-ranch",
     name: "Birdie Ranch Golf Club",
     location: "Show Low, Arizona",
-    image: "Birdie_Ranch",
-    imageWidth: 1500,
-    imageHeight: 1000,
+    image: "Birdie_Ranch_Hole_8",
+    imageWidth: 1600,
+    imageHeight: 887,
     imagePosition: "center center",
-    alt: "Golfer swinging at Birdie Ranch Golf Club",
+    alt: "Birdie Ranch Golf Club fairway between two ponds",
     copy: "Gary Panks designed this one too, back when it was called Silver Creek. Big skies, open juniper country, and greens worth the trip. It's the only year-round course in the White Mountains, so the season never really ends.",
   },
   {
@@ -102,12 +102,13 @@ export function PublicGolf() {
 
         <div className="ph__hero-evidence">
           <picture>
-            <source type="image/webp" srcSet="/photography/golf/Tubac_Aerial.webp" />
+            <source type="image/webp" srcSet="/photography/golf/Tubac_Golf_Resort--38.webp" />
             <img
-              src="/photography/golf/Tubac_Aerial.jpg"
-              width={1280}
-              height={720}
-              alt="Tubac Golf Resort & Spa aerial view at sunset"
+              src="/photography/golf/Tubac_Golf_Resort--38.jpg"
+              width={2400}
+              height={1349}
+              alt="Tubac Golf Resort & Spa island green and clubhouse from above"
+              style={{ objectPosition: "center 69%" }}
               loading="eager"
               {...{ fetchpriority: "high" }}
             />

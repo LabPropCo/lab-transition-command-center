@@ -61,7 +61,7 @@ export function PublicHome() {
             sizes="100vw"
             width={1440}
             height={480}
-            alt="Collage of The Lab properties: River Run, Zona Verde, The Parker on Black Oak, Sedona Golf Resort, Tubac Golf Resort & Spa, Bison Golf Club, and The Reserve at Steele Crossing."
+            alt="Collage of The Lab properties: River Run, Zona Verde East, Union 505, The Parker on Black Oak, Timbers, Zona Verde, The Reserve at Steele Crossing, and Tubac Golf Resort & Spa."
             loading="eager"
             {...{ fetchpriority: "high" }}
           />
@@ -96,6 +96,19 @@ export function PublicHome() {
                 decision. It is built through the standards teams follow,
                 the issues they refuse to walk past, and the improvements
                 they make every day.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="ph__inner ph__owner">
+          <div className="ph__thesis-row">
+            <h2 className="ph__thesis-maxim ph__owner-title">We're owners, too.</h2>
+            <div className="ph__thesis-explain">
+              <p>
+                The Lab owns and operates its own properties and manages for
+                other owners, so every decision is made the way an owner would
+                make it: for long-term value, with teams built to stay.
               </p>
             </div>
           </div>
