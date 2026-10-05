@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { WorkItem, WorkItemPatch } from "../work-items/types";
-import { STATUSES, RESP_PARTIES, OWNERS, statusColor } from "../work-items/constants";
+import type { WorkOwner } from "../types";
+import { STATUSES, RESP_PARTIES, statusColor } from "../work-items/constants";
 
-export function WorkItemDetail({ item, allItems, transitionName, propertyName, onClose, onSave }: {
+export function WorkItemDetail({ item, allItems, transitionName, propertyName, owners, onClose, onSave }: {
   item: WorkItem;
   allItems: WorkItem[];
   transitionName: string;
   propertyName: string;
+  owners: WorkOwner[]; // active roster; the item's current owner is always shown too, even if inactive/removed
   onClose: () => void;
   onSave: (patch: WorkItemPatch) => Promise<WorkItem>;
 }) {
@@ -58,6 +60,13 @@ export function WorkItemDetail({ item, allItems, transitionName, propertyName, o
   }
 
   const scopeLabel = item.scopeType === "transition" ? "Shared (transition-wide)" : "Property-specific";
+
+  // Always include the item's current owner even if it's since been
+  // deactivated or removed from the roster, so history is never hidden.
+  const ownerOptions = useMemo(() => {
+    const names = owners.map((o) => o.displayName);
+    return item.owner && !names.includes(item.owner) ? [item.owner, ...names] : names;
+  }, [owners, item.owner]);
 
   return (
     <>
@@ -112,7 +121,7 @@ export function WorkItemDetail({ item, allItems, transitionName, propertyName, o
           </Field>
           <Field label="Owner">
             <select className="panel__input" value={owner} onChange={(e) => setOwner(e.target.value)}>
-              <option value="">—</option>{OWNERS.map((o) => <option key={o}>{o}</option>)}
+              <option value="">—</option>{ownerOptions.map((o) => <option key={o}>{o}</option>)}
             </select>
           </Field>
           <Field label="Responsible party">

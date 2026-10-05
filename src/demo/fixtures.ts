@@ -1,7 +1,18 @@
 // AUTO-GENERATED demo fixtures — local UI review only (DEMO_MODE).
 // Arkansas Portfolio Transition: 2 properties, 35 shared + 71 per-property items.
 import type { WorkItem } from "../work-items/types";
-import type { Transition, Property } from "../types";
+import type { Transition, Property, WorkOwner } from "../types";
+
+// Mirrors the seed in supabase/migrations/0015_work_owners.sql so demo mode
+// (fully offline, no Supabase) still offers a real Owner dropdown.
+export const DEMO_OWNERS: WorkOwner[] = [
+  { id: "demo-owner-1", displayName: "Dana Whitfield", active: true, sortOrder: 1 },
+  { id: "demo-owner-2", displayName: "Marcus Vidal", active: true, sortOrder: 2 },
+  { id: "demo-owner-3", displayName: "Priya Anand", active: true, sortOrder: 3 },
+  { id: "demo-owner-4", displayName: "Theo Bianchi", active: true, sortOrder: 4 },
+  { id: "demo-owner-5", displayName: "Rosa Marin", active: true, sortOrder: 5 },
+  { id: "demo-owner-6", displayName: "IT Support", active: true, sortOrder: 6 },
+];
 
 export const DEMO_TRANSITION: Transition = {
   id: "demo-arkansas", name: "Arkansas Portfolio Transition", ownershipGroup: "Larkspur Capital Partners",
@@ -16,7 +27,8 @@ export const DEMO_PROPERTIES: Property[] = [
   { id: "demo-prop-b", transitionId: "demo-arkansas", name: "Magnolia Court", client: "Larkspur Capital Partners", transitionDate: "2026-06-01", goLive: "2026-08-01", units: 196, address: "220 Oak Ave", city: "Springdale", state: "AR", zip: "72762", propertyType: "Garden", notes: null, active: true },
 ];
 
-export const DEMO_WORK_ITEMS: WorkItem[] = [
+// propertyActive/archivedAt are derived in demoList/demoUpdate, never authored here.
+export const DEMO_WORK_ITEMS: Omit<WorkItem, "propertyActive" | "archivedAt">[] = [
   { id: "T001", transitionId: "demo-arkansas", propertyId: null, scopeType: "transition", code: "T001", sortOrder: 1, phase: "Contract Execution", phaseOrder: 0, workstream: "Executive & Legal", subWorkstream: "Executive", description: "Execute management agreement", completionStandard: "Fully signed agreement countersigned and filed in the deal folder.", owner: "Marcus Vidal", responsibleParty: "Shared", priority: "Critical", goLiveGate: false, criticalPath: true, stage: null, gateGroup: null, dependsOnCode: null, startDate: "2026-05-24", dueDate: "2026-06-01", status: "Complete", notes: null, dropboxLink: null, completedAt: "2026-06-01", updatedAt: null, updatedBy: null },
   { id: "T002", transitionId: "demo-arkansas", propertyId: null, scopeType: "transition", code: "T002", sortOrder: 2, phase: "Contract Execution", phaseOrder: 0, workstream: "Executive & Legal", subWorkstream: "Executive", description: "Confirm transition team & assign owners", completionStandard: "Every workstream has a named owner in this workbook.", owner: "Priya Anand", responsibleParty: "The Lab", priority: "High", goLiveGate: false, criticalPath: false, stage: null, gateGroup: null, dependsOnCode: null, startDate: "2026-05-25", dueDate: "2026-06-02", status: "Complete", notes: null, dropboxLink: null, completedAt: "2026-06-02", updatedAt: null, updatedBy: null },
   { id: "T003", transitionId: "demo-arkansas", propertyId: null, scopeType: "transition", code: "T003", sortOrder: 3, phase: "Contract Execution", phaseOrder: 0, workstream: "Executive & Legal", subWorkstream: "Executive", description: "Hold transition kickoff call", completionStandard: "Kickoff held; notes and 60-day plan distributed to all parties.", owner: "Priya Anand", responsibleParty: "Shared", priority: "High", goLiveGate: false, criticalPath: false, stage: null, gateGroup: null, dependsOnCode: null, startDate: "2026-05-26", dueDate: "2026-06-03", status: "Complete", notes: null, dropboxLink: null, completedAt: "2026-06-03", updatedAt: null, updatedBy: null },

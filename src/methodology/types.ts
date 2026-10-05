@@ -61,7 +61,7 @@ export interface SyncRow {
   code: string;
   propertyId: string | null;
   scopeType: string;
-  changeType: "add" | "rename" | "metadata" | "due" | "conflict" | "skip" | "archived";
+  changeType: "add" | "rename" | "metadata" | "owner" | "due" | "archive" | "restore" | "conflict" | "skip";
   field: string | null;
   oldValue: string | null;
   newValue: string | null;
@@ -78,4 +78,7 @@ export interface DiffRow {
   newValue: string | null;
 }
 
-export interface SyncResult { added: number; renamed: number; updated: number; due: number; }
+export interface SyncResult {
+  added: number; renamed: number; updated: number; due: number;
+  archived: number; restored: number; ownersUpdated: number; ownerConflicts: number;
+}

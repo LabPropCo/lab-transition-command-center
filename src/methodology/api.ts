@@ -128,22 +128,30 @@ export async function syncPreview(transitionId: string): Promise<SyncRow[]> {
     field: r.field, oldValue: r.old_value, newValue: r.new_value, workItemId: r.work_item_id, completed: r.completed, templateId: r.template_id,
   }));
 }
-export async function applySync(transitionId: string, opts: { add: boolean; rename: boolean; metadata: boolean; due: boolean; skipCompleted: boolean; }): Promise<SyncResult> {
+export async function applySync(transitionId: string, opts: {
+  add: boolean; rename: boolean; metadata: boolean; due: boolean; skipCompleted: boolean;
+  archive: boolean; restore: boolean; owner: boolean;
+}): Promise<SyncResult> {
   guard();
   const { data, error } = await supabase!.rpc("apply_transition_sync", {
     p_transition_id: transitionId, p_add: opts.add, p_rename: opts.rename,
     p_metadata: opts.metadata, p_due: opts.due, p_skip_completed: opts.skipCompleted,
+    p_archive: opts.archive, p_restore: opts.restore, p_owner: opts.owner,
   });
   if (error) throw friendly(error);
-  return { added: data?.added ?? 0, renamed: data?.renamed ?? 0, updated: data?.updated ?? 0, due: data?.due ?? 0 };
+  return {
+    added: data?.added ?? 0, renamed: data?.renamed ?? 0, updated: data?.updated ?? 0, due: data?.due ?? 0,
+    archived: data?.archived ?? 0, restored: data?.restored ?? 0,
+    ownersUpdated: data?.owners_updated ?? 0, ownerConflicts: data?.owner_conflicts ?? 0,
+  };
 }
 
-export async function deferSyncChange(transitionId: string, templateId: string, changeType: "rename" | "metadata" | "due"): Promise<void> {
+export async function deferSyncChange(transitionId: string, templateId: string, changeType: "rename" | "metadata" | "due" | "owner"): Promise<void> {
   guard();
   const { error } = await supabase!.rpc("defer_sync_change", { p_transition_id: transitionId, p_template_id: templateId, p_change_type: changeType });
   if (error) throw friendly(error);
 }
-export async function undeferSyncChange(transitionId: string, templateId: string, changeType: "rename" | "metadata" | "due"): Promise<void> {
+export async function undeferSyncChange(transitionId: string, templateId: string, changeType: "rename" | "metadata" | "due" | "owner"): Promise<void> {
   guard();
   const { error } = await supabase!.rpc("undefer_sync_change", { p_transition_id: transitionId, p_template_id: templateId, p_change_type: changeType });
   if (error) throw friendly(error);

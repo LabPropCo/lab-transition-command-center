@@ -5,7 +5,9 @@ import {
   listTemplates, listVersions, createTemplate, updateTemplate, deleteTemplate,
   setArchived, duplicateTemplate, swapOrder, publishVersion,
 } from "../../methodology/api";
+import { listActiveOwners } from "../../work-items/api";
 import type { Template, TemplatePatch, MethodologyVersion } from "../../methodology/types";
+import type { WorkOwner } from "../../types";
 import { TemplateDetail } from "../../components/TemplateDetail";
 import { SyncPanel } from "../../components/SyncPanel";
 import "../../styles/admin.css";
@@ -16,6 +18,7 @@ export function MethodologyLibrary() {
   const { selected } = useTransition();
   const [items, setItems] = useState<Template[]>([]);
   const [versions, setVersions] = useState<MethodologyVersion[]>([]);
+  const [owners, setOwners] = useState<WorkOwner[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
@@ -36,6 +39,7 @@ export function MethodologyLibrary() {
       .catch((e) => { setError(e instanceof Error ? e.message : "Load failed."); setLoading(false); });
   }, []);
   useEffect(() => { reload(); }, [reload]);
+  useEffect(() => { listActiveOwners().then(setOwners).catch((e) => console.error("[owners] load failed", e)); }, []);
 
   const currentVersion = versions.find((v) => v.isCurrent) ?? null;
   const workstreams = useMemo(() => Array.from(new Set(items.map((i) => i.workstream).filter(Boolean))) as string[], [items]);
@@ -226,7 +230,7 @@ export function MethodologyLibrary() {
       {editing !== null && (
         <TemplateDetail
           template={editing === "new" ? null : editing}
-          workstreams={workstreams} phases={phases}
+          workstreams={workstreams} phases={phases} owners={owners}
           onClose={() => setEditing(null)}
           onSave={onSave} onDelete={onDelete} onDuplicate={onDuplicate} onToggleArchive={onToggleArchive}
         />
